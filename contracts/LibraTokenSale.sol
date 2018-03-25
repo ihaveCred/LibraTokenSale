@@ -87,7 +87,15 @@ contract LibraTokenSale is Whitelist {
     * @param _wallet Address where collected funds will be forwarded to
     * @param _token Address of the token being sold
     */
-    function LibraTokenSale(uint256 _rate, address _wallet, ERC20 _token) public {
+    function LibraTokenSale(
+        uint256 _rate,
+        address _wallet,
+        ERC20 _token,
+        uint256 _depositPhaseStartTime,
+        uint256 _depositPhaseStartBlock,
+        uint256 _depositPhaseEndTime,
+        uint256 _depositPhaseEndBlock) public {
+
         require(_rate > 0);
         require(_wallet != address(0));
         require(_token != address(0));
@@ -95,6 +103,11 @@ contract LibraTokenSale is Whitelist {
         rate = _rate;
         wallet = _wallet;
         token = LibraToken(_token);
+
+        depositPhaseStartTime = _depositPhaseStartTime;
+        depositPhaseStartBlock = _depositPhaseStartBlock;
+        depositPhaseEndTime = _depositPhaseEndTime;
+        depositPhaseEndBlock = _depositPhaseEndBlock;
     }
 
     // -----------------------------------------
