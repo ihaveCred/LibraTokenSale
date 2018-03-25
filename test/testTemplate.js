@@ -1,4 +1,4 @@
-import ether from '../helpers/ether';
+import ether from 'zeppelin-solidity/test/helpers/ether';
 
 const BigNumber = web3.BigNumber;
 

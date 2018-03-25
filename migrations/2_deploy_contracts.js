@@ -1,5 +1,5 @@
 var LibraToken = artifacts.require("./LibraToken.sol");
-var LibraTokenSale = artifacts.require("./LibraTokenSol.sol");
+var LibraTokenSale = artifacts.require("./LibraTokenSale.sol");
 
 module.exports = function (deployer) {
     deployer.deploy(LibraToken).then(function () {
