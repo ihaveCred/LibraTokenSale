@@ -1,5 +1,7 @@
 import ether from 'zeppelin-solidity/test/helpers/ether';
 import {increaseTimeTo} from 'zeppelin-solidity/test/helpers/increaseTime';
+import EVMRevert from 'zeppelin-solidity/test/helpers/EVMRevert';
+import assertRevert from 'zeppelin-solidity/test/helpers/assertRevert';
 
 const BigNumber = web3.BigNumber;
 
@@ -18,17 +20,21 @@ contract('WhitelistedCrowdsale', function ([_, wallet, authorized, unauthorized,
     describe('single user whitelisting', function () {
         beforeEach(async function () {
             this.token = await LibraToken.new();
+            console.log("Token", this.token.address);
             this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address);
+            console.log("Crowdsale", this.crowdsale.address);
             await this.token.transfer(this.crowdsale.address, tokenSupply);
+            console.log("pass");
             await this.crowdsale.addToWhitelist(authorized);
+            console.log("pass");
         });
 
         describe('accepting deposits', function () {
             
             it('should reject payments to whitelisted before deposit phase starts', async function () {
-                await this.crowdsale.send(value).should.be.rejected;
-                await this.crowdsale.send({ value: value, from: authorized }).should.be.rejected;
-                await this.crowdsale.send({ value: value, from: unauthorized }).should.be.rejected;
+                await this.crowdsale.send(value).should.be.rejected(assertRevert);
+                await this.crowdsale.send({ value: value, from: authorized }).should.be.rejected(assertRevert);
+                await this.crowdsale.send({ value: value, from: unauthorized }).should.be.rejected(assertRevert);
             });
             
             it('should accept deposits to whitelisted after deposit phase starts', async function () {
@@ -37,15 +43,15 @@ contract('WhitelistedCrowdsale', function ([_, wallet, authorized, unauthorized,
             });
             
             it('should reject payments to not whitelisted after deposit phase starts', async function () {
-                await this.crowdsale.send(value).should.be.rejected;
-                await this.crowdsale.send({ value: value, from: unauthorized }).should.be.rejected;
+                await this.crowdsale.send(value).should.be.rejectedWith(EVMRevert);
+                await this.crowdsale.send({ value: value, from: unauthorized }).should.be.rejectedWith(EVMRevert);
             });
 
             it('should reject payments to addresses removed from whitelist', async function () {
                 this.crowdsale.balance.should.equal(value);
                 await this.crowdsale.removeFromWhitelist(authorized);
                 this.crowdsale.balance.should.equal(0);
-                await this.crowdsale.send({ value: value, from: authorized }).should.be.rejected;
+                await this.crowdsale.send({ value: value, from: authorized }).should.be.rejectedWith(EVMRevert);
             });
         });
 
@@ -55,12 +61,12 @@ contract('WhitelistedCrowdsale', function ([_, wallet, authorized, unauthorized,
     //         });
 
     //         it('should reject payments to not whitelisted (from whichever buyers)', async function () {
-    //             await this.crowdsale.send(value).should.be.rejected;
-    //             await this.crowdsale.send({ value: value, from: unauthorized }).should.be.rejected;
+    //             await this.crowdsale.send(value).should.be.rejectedWith(EVMRevert);
+    //             await this.crowdsale.send({ value: value, from: unauthorized }).should.be.rejectedWith(EVMRevert);
     //         });
 
     //         it('should reject collection before end time', async function () {
-    //             await this.crowdsale.collectTokens({ value: 0, from: authorized }).should.be.rejected;
+    //             await this.crowdsale.collectTokens({ value: 0, from: authorized }).should.be.rejectedWith(EVMRevert);
     //         });
 
     //         it('should accept collection after end time', async function () {
@@ -96,15 +102,15 @@ contract('WhitelistedCrowdsale', function ([_, wallet, authorized, unauthorized,
     //         });
 
     //         it('should reject payments to not whitelisted (with whichever buyers)', async function () {
-    //             await this.crowdsale.send(value).should.be.rejected;
-    //             await this.crowdsale.send({ value: value, from: unauthorized }).should.be.rejected;
-    //             await this.crowdsale.send({ value: value, from: authorized }).should.be.rejected;
+    //             await this.crowdsale.send(value).should.be.rejectedWith(EVMRevert);
+    //             await this.crowdsale.send({ value: value, from: unauthorized }).should.be.rejectedWith(EVMRevert);
+    //             await this.crowdsale.send({ value: value, from: authorized }).should.be.rejectedWith(EVMRevert);
     //         });
 
     //         it('should reject payments to addresses removed from whitelist', async function () {
     //             await this.crowdsale.removeFromWhitelist(anotherAuthorized);
     //             await this.crowdsale.buyTokens(authorized, { value: value, from: authorized }).should.be.fulfilled;
-    //             await this.crowdsale.buyTokens(anotherAuthorized, { value: value, from: authorized }).should.be.rejected;
+    //             await this.crowdsale.buyTokens(anotherAuthorized, { value: value, from: authorized }).should.be.rejectedWith(EVMRevert);
     //         });
     //     });
 
