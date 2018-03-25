@@ -1,6 +1,5 @@
-  pragma solidity ^0.4.18;
+  pragma solidity ^0.4.19;
 
-  import "zeppelin-solidity/contracts/token/ERC20/ERC20.sol";
   import "zeppelin-solidity/contracts/math/SafeMath.sol";
   import "./LibraToken.sol";
 
@@ -20,6 +19,11 @@
 contract Crowdsale {
     using SafeMath for uint256;
 
+    /** Phase 1 Start/End */
+
+    uint256 depositPhaseStartTime;
+    uint256 depositPhaseEndTime;
+
     // The token being sold
     LibraToken public token;
 
@@ -32,6 +36,15 @@ contract Crowdsale {
     // Amount of wei raised
     uint256 public weiRaised;
 
+    // Amount of wei deposited
+    uint256 public weiDeposited;
+
+    // Value of public sale token supply in wei
+    uint256 constant public WEI_CAP = (10 ** 18) * (10 ** 4); // 10,000 Eth Cap * 10^18 Wei/Eth
+
+    // Amount of wei deposited by an address
+    mapping(address => uint256) depositAmount;
+
     /**
     * Event for token purchase logging
     * @param purchaser who paid for the tokens
@@ -40,6 +53,29 @@ contract Crowdsale {
     * @param amount amount of tokens purchased
     */
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
+
+    /**
+    * Event for returning excess wei
+    * @param _from who receives return
+    * @param _value amount of wei returned
+    */
+    event ReturnExcessETH(address indexed _from, uint256 _value);
+
+    /**
+    * @dev Reverts if not in deposit time range. 
+    */
+    modifier onlyWhileDepositPhaseOpen {
+        require(block.timestamp >= depositPhaseStartTime && block.timestamp <= depositPhaseEndTime);
+        _;
+    }
+
+    /**
+    * @dev Reverts if not in processing time range. 
+    */
+    modifier onlyWhileProcessingPhaseOpen {
+        require(block.timestamp > depositPhaseEndTime);
+        _;
+    }
 
     /**
     * @param _rate Number of token units a buyer gets per wei
@@ -64,31 +100,52 @@ contract Crowdsale {
     * @dev fallback function ***DO NOT OVERRIDE***
     */
     function () external payable {
-        buyTokens(msg.sender);
+        deposit(msg.sender);
     }
 
     /**
-    * @dev low level token purchase ***DO NOT OVERRIDE***
-    * @param _beneficiary Address performing the token purchase
+    * @dev Handles user deposit internally
     */
-    function buyTokens(address _beneficiary) public payable {
+    function deposit(address user) internal onlyWhileDepositPhaseOpen {
+        depositAmount[user] = depositAmount[user].add(msg.value);
+        weiDeposited = depositAmount[user].add(msg.value);
+    }
 
-        uint256 weiAmount = msg.value;
-        _preValidatePurchase(_beneficiary, weiAmount);
+    /**
+    * @dev Handle user withdrawal
+    */
+    function withdraw(address user) external onlyWhileDepositPhaseOpen {
+        uint256 withdrawAmount = depositAmount[user];
+        require(withdrawAmount > 0);
+        depositAmount[user] = 0;
+        msg.sender.transfer(withdrawAmount);
+    }
 
-        // calculate token amount to be created
-        uint256 tokens = _getTokenAmount(weiAmount);
+    /**
+    * @dev low level process deposit ***DO NOT OVERRIDE***
+    * @param user Address performing the token purchase
+    */
+    function processDeposit(address user) public onlyWhileProcessingPhaseOpen {
+
+        uint256 weiAmount = depositAmount[user];
+        _preValidatePurchase(user, weiAmount);
+
+        // calculate token and refund amounts to be created
+        uint256 tokens = _getTokenAmount(user);
+        uint256 refund = _getRefundAmount(user);
+        
 
         // update state
-        weiRaised = weiRaised.add(weiAmount);
+        weiRaised = weiRaised.add(weiAmount.sub(refund));
+        weiAmount = weiAmount.sub(refund);
 
-        _processPurchase(_beneficiary, tokens);
-        TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens);
+        _processPurchase(user, tokens, refund);
+        TokenPurchase(user, user, weiAmount, tokens);
 
-        _updatePurchasingState(_beneficiary, weiAmount);
+        // _updatePurchasingState(user, weiAmount);
 
-        _forwardFunds();
-        _postValidatePurchase(_beneficiary, weiAmount);
+        _forwardFunds(weiAmount);
+        // _postValidatePurchase(user, weiAmount);
     }
 
     // -----------------------------------------
@@ -97,63 +154,117 @@ contract Crowdsale {
 
     /**
     * @dev Validation of an incoming purchase. Use require statements to revert state when conditions are not met. Use super to concatenate validations.
-    * @param _beneficiary Address performing the token purchase
+    * @param user Address performing the token purchase
     * @param _weiAmount Value in wei involved in the purchase
     */
-    function _preValidatePurchase(address _beneficiary, uint256 _weiAmount) internal {
-        require(_beneficiary != address(0));
+    function _preValidatePurchase(address user, uint256 _weiAmount) internal {
+        require(user != address(0));
         require(_weiAmount != 0);
     }
 
     /**
     * @dev Validation of an executed purchase. Observe state and use revert statements to undo rollback when valid conditions are not met.
-    * @param _beneficiary Address performing the token purchase
+    * @param user Address performing the token purchase
     * @param _weiAmount Value in wei involved in the purchase
     */
-    function _postValidatePurchase(address _beneficiary, uint256 _weiAmount) internal {
-      // optional override
-    }
+    // function _postValidatePurchase(address user, uint256 _weiAmount) internal {
+    //   // optional override
+    // }
 
     /**
     * @dev Source of tokens. Override this method to modify the way in which the crowdsale ultimately gets and sends its tokens.
-    * @param _beneficiary Address performing the token purchase
+    * @param user Address performing the token purchase
     * @param _tokenAmount Number of tokens to be emitted
     */
-    function _deliverTokens(address _beneficiary, uint256 _tokenAmount) internal {
-        token.transfer(_beneficiary, _tokenAmount);
+    function _deliverTokens(address user, uint256 _tokenAmount) internal {
+        require(depositAmount[user] > 0); 
+        depositAmount[user] = 0; // reentrancy protection 
+        token.transfer(user, _tokenAmount);
+    }
+
+    /**
+    * @dev Refunds excess ether when processing purchase
+    * @param user Address performing the token purchase
+    * @param _refundAmount Amount of wei to be refunded
+    */
+    function _refundExcess(address user, uint256 _refundAmount) internal {
+        user.transfer(_refundAmount);
+        ReturnExcessETH(user, _refundAmount);
     }
 
     /**
     * @dev Executed when a purchase has been validated and is ready to be executed. Not necessarily emits/sends tokens.
-    * @param _beneficiary Address receiving the tokens
+    * @param user Address receiving the tokens
     * @param _tokenAmount Number of tokens to be purchased
     */
-    function _processPurchase(address _beneficiary, uint256 _tokenAmount) internal {
-        _deliverTokens(_beneficiary, _tokenAmount);
+    function _processPurchase(address user, uint256 _tokenAmount, uint256 _refundAmount) internal {
+        _deliverTokens(user, _tokenAmount);
+        _refundExcess(user, _refundAmount);
     }
 
     /**
     * @dev Override for extensions that require an internal state to check for validity (current user contributions, etc.)
-    * @param _beneficiary Address receiving the tokens
+    * @param user Address receiving the tokens
     * @param _weiAmount Value in wei involved in the purchase
     */
-    function _updatePurchasingState(address _beneficiary, uint256 _weiAmount) internal {
-      // optional override
+    // function _updatePurchasingState(address user, uint256 _weiAmount) internal {
+    //   // optional override
+    // }
+
+    /**
+    * @dev Override to extend the way in which ether is converted to tokens.
+    * @param user address of user to be refunded
+    * @return Number of tokens that can be purchased with the specified _weiAmount
+    */
+    function _getTokenAmount(address user) internal view returns (uint256) {
+        uint256 d = depositAmount[user];
+        uint256 r = 0;
+        if (weiDeposited > WEI_CAP) {
+            r = weiDeposited.sub(WEI_CAP).mul(d).div(weiDeposited);
+        }
+        d = d.sub(r);
+        return d.mul(rate);
     }
 
     /**
     * @dev Override to extend the way in which ether is converted to tokens.
-    * @param _weiAmount Value in wei to be converted into tokens
+    * @param user address of user to be refunded
     * @return Number of tokens that can be purchased with the specified _weiAmount
     */
-    function _getTokenAmount(uint256 _weiAmount) internal view returns (uint256) {
-        return _weiAmount.mul(rate);
+    function _getRefundAmount(address user) internal view returns (uint256) {
+        uint256 d = depositAmount[user];
+        uint256 r = 0;
+        if (weiDeposited > WEI_CAP) {
+            r = weiDeposited.sub(WEI_CAP).mul(d).div(weiDeposited);
+        }
+        return r;
     }
 
     /**
     * @dev Determines how ETH is stored/forwarded on purchases.
     */
-    function _forwardFunds() internal {
-        wallet.transfer(msg.value);
+    function _forwardFunds(uint256 value) internal {
+        wallet.transfer(value);
+    }
+
+    // -----------------------------------------
+    // Constant functions
+    // -----------------------------------------
+
+    /**
+    * @dev Checks whether the phase in which the deposits are accepted has already elapsed.
+    * @return Whether deposit phase has elapsed
+    */
+    function hasClosed() public view returns (bool) {
+        return block.timestamp > depositPhaseEndTime;
+    }
+
+    /**
+    * @dev Returns the amount of wei a user has deposited
+    * @param user the address of the user whose deposit amount is to be returned
+    * @return Whether deposit phase has elapsed
+    */
+    function getDepositAmount(address user) public view returns (uint256) {
+        return depositAmount[user];
     }
 }
