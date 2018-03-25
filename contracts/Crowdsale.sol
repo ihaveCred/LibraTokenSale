@@ -1,6 +1,7 @@
   pragma solidity ^0.4.19;
 
   import "zeppelin-solidity/contracts/math/SafeMath.sol";
+  import "zeppelin-solidity/contracts/ownership/Whitelist.sol";
   import "./LibraToken.sol";
 
   /**
@@ -16,7 +17,7 @@
   * behavior.
   */
 
-contract Crowdsale {
+contract Crowdsale is Whitelist {
     using SafeMath for uint256;
 
     /** Phase 1 Start/End */
@@ -106,7 +107,8 @@ contract Crowdsale {
     /**
     * @dev Handles user deposit internally
     */
-    function deposit(address user) internal onlyWhileDepositPhaseOpen {
+    function deposit() internal onlyWhileDepositPhaseOpen onlyWhitelisted {
+        address user = msg.sender;
         depositAmount[user] = depositAmount[user].add(msg.value);
         weiDeposited = weiDeposited.add(msg.value);
     }
@@ -125,8 +127,8 @@ contract Crowdsale {
     * @dev low level process deposit ***DO NOT OVERRIDE***
     * @param user Address performing the token purchase
     */
-    function processDeposit(address user) public onlyWhileProcessingPhaseOpen {
-
+    function collectTokens() public onlyWhileProcessingPhaseOpen onlyWhitelisted {
+        address user = msg.sender;
         uint256 weiAmount = depositAmount[user];
         _preValidatePurchase(user, weiAmount);
 
