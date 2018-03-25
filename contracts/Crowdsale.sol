@@ -108,7 +108,7 @@ contract Crowdsale {
     */
     function deposit(address user) internal onlyWhileDepositPhaseOpen {
         depositAmount[user] = depositAmount[user].add(msg.value);
-        weiDeposited = depositAmount[user].add(msg.value);
+        weiDeposited = weiDeposited.add(msg.value);
     }
 
     /**
