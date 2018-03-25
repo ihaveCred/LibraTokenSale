@@ -138,7 +138,6 @@ contract LibraTokenSale is Whitelist {
 
     /**
     * @dev low level process deposit ***DO NOT OVERRIDE***
-    * @param user Address performing the token purchase
     */
     function collectTokens() public onlyWhileProcessingPhaseOpen onlyWhitelisted {
         address user = msg.sender;
@@ -177,11 +176,11 @@ contract LibraTokenSale is Whitelist {
         require(_weiAmount != 0);
     }
 
-    /**
-    * @dev Validation of an executed purchase. Observe state and use revert statements to undo rollback when valid conditions are not met.
-    * @param user Address performing the token purchase
-    * @param _weiAmount Value in wei involved in the purchase
-    */
+    // /**
+    // * @dev Validation of an executed purchase. Observe state and use revert statements to undo rollback when valid conditions are not met.
+    // * @param user Address performing the token purchase
+    // * @param _weiAmount Value in wei involved in the purchase
+    // */
     // function _postValidatePurchase(address user, uint256 _weiAmount) internal {
     //   // optional override
     // }
@@ -211,17 +210,18 @@ contract LibraTokenSale is Whitelist {
     * @dev Executed when a purchase has been validated and is ready to be executed. Not necessarily emits/sends tokens.
     * @param user Address receiving the tokens
     * @param _tokenAmount Number of tokens to be purchased
+    * @param _refundAmount Wei to be refunded
     */
     function _processPurchase(address user, uint256 _tokenAmount, uint256 _refundAmount) internal {
         _deliverTokens(user, _tokenAmount);
         _refundExcess(user, _refundAmount);
     }
 
-    /**
-    * @dev Override for extensions that require an internal state to check for validity (current user contributions, etc.)
-    * @param user Address receiving the tokens
-    * @param _weiAmount Value in wei involved in the purchase
-    */
+    // /**
+    // * @dev Override for extensions that require an internal state to check for validity (current user contributions, etc.)
+    // * @param user Address receiving the tokens
+    // * @param _weiAmount Value in wei involved in the purchase
+    // */
     // function _updatePurchasingState(address user, uint256 _weiAmount) internal {
     //   // optional override
     // }
@@ -244,7 +244,7 @@ contract LibraTokenSale is Whitelist {
     /**
     * @dev Override to extend the way in which ether is converted to tokens.
     * @param user address of user to be refunded
-    * @return Number of tokens that can be purchased with the specified _weiAmount
+    * @return Amount of wei to be refunded
     */
     function _getRefundAmount(address user) internal view returns (uint256) {
         uint256 d = depositAmount[user];
@@ -257,6 +257,7 @@ contract LibraTokenSale is Whitelist {
 
     /**
     * @dev Determines how ETH is stored/forwarded on purchases.
+    * @param value amount of wei to forward
     */
     function _forwardFunds(uint256 value) internal {
         wallet.transfer(value);
@@ -276,7 +277,6 @@ contract LibraTokenSale is Whitelist {
 
     /**
     * @dev Returns the amount of wei a user has deposited
-    * @param user the address of the user whose deposit amount is to be returned
     * @return Whether deposit phase has elapsed
     */
     function getDepositAmount() public view returns (uint256) {
