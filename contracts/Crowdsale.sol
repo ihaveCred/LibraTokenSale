@@ -107,7 +107,7 @@ contract Crowdsale is Whitelist {
     /**
     * @dev Handles user deposit internally
     */
-    function deposit() internal onlyWhileDepositPhaseOpen onlyWhitelisted {
+    function deposit() public onlyWhileDepositPhaseOpen onlyWhitelisted {
         address user = msg.sender;
         depositAmount[user] = depositAmount[user].add(msg.value);
         weiDeposited = weiDeposited.add(msg.value);
@@ -267,7 +267,7 @@ contract Crowdsale is Whitelist {
     * @param user the address of the user whose deposit amount is to be returned
     * @return Whether deposit phase has elapsed
     */
-    function getDepositAmount(address user) public view returns (uint256) {
-        return depositAmount[user];
+    function getDepositAmount() public view returns (uint256) {
+        return depositAmount[msg.sender];
     }
 }
