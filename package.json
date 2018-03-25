@@ -1,0 +1,27 @@
+{
+  "name": "libratokensale",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "zeppelin-solidity": "^1.7.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "truffle compile",
+    "test": "truffle test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArgusObserver/LibraTokenSale.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ArgusObserver/LibraTokenSale/issues"
+  },
+  "homepage": "https://github.com/ArgusObserver/LibraTokenSale#readme"
+}
