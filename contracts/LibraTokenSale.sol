@@ -1,7 +1,7 @@
   pragma solidity ^0.4.19;
 
   import "zeppelin-solidity/contracts/math/SafeMath.sol";
-  import "zeppelin-solidity/contracts/ownership/Whitelist.sol";
+  import "./ZeppelinWhitelist.sol";
   import "./LibraToken.sol";
 
   /**
@@ -17,7 +17,7 @@
   * behavior.
   */
 
-contract Crowdsale is Whitelist {
+contract LibraTokenSale is Whitelist {
     using SafeMath for uint256;
 
     /** Phase 1 Start/End */
@@ -83,7 +83,7 @@ contract Crowdsale is Whitelist {
     * @param _wallet Address where collected funds will be forwarded to
     * @param _token Address of the token being sold
     */
-    function Crowdsale(uint256 _rate, address _wallet, ERC20 _token) public {
+    function LibraTokenSale(uint256 _rate, address _wallet, ERC20 _token) public {
         require(_rate > 0);
         require(_wallet != address(0));
         require(_token != address(0));
@@ -101,7 +101,7 @@ contract Crowdsale is Whitelist {
     * @dev fallback function ***DO NOT OVERRIDE***
     */
     function () external payable {
-        deposit(msg.sender);
+        deposit();
     }
 
     /**
