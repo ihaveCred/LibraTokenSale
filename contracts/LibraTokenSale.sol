@@ -22,8 +22,11 @@ contract LibraTokenSale is Whitelist {
 
     /** Phase 1 Start/End */
 
+    // Need to set these block numbers/times
     uint256 depositPhaseStartTime;
+    uint256 depositPhaseStartBlock;
     uint256 depositPhaseEndTime;
+    uint256 depositPhaseEndBlock;
 
     // The token being sold
     LibraToken public token;
@@ -67,6 +70,7 @@ contract LibraTokenSale is Whitelist {
     */
     modifier onlyWhileDepositPhaseOpen {
         require(block.timestamp >= depositPhaseStartTime && block.timestamp <= depositPhaseEndTime);
+        require(block.number >= depositPhaseStartBlock && block.number <= depositPhaseEndBlock);
         _;
     }
 
@@ -74,7 +78,7 @@ contract LibraTokenSale is Whitelist {
     * @dev Reverts if not in processing time range. 
     */
     modifier onlyWhileProcessingPhaseOpen {
-        require(block.timestamp > depositPhaseEndTime);
+        require(block.timestamp > depositPhaseEndTime || block.number > depositPhaseEndBlock);
         _;
     }
 
@@ -272,7 +276,7 @@ contract LibraTokenSale is Whitelist {
     * @return Whether deposit phase has elapsed
     */
     function hasClosed() public view returns (bool) {
-        return block.timestamp > depositPhaseEndTime;
+        return block.timestamp > depositPhaseEndTime || block.number > depositPhaseEndBlock;
     }
 
     /**
