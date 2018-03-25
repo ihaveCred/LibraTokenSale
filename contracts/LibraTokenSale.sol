@@ -130,7 +130,6 @@ contract LibraTokenSale is Whitelist {
 
     /**
     * @dev low level process deposit ***DO NOT OVERRIDE***
-    * @param user Address performing the token purchase
     */
     function collectTokens() public onlyWhileProcessingPhaseOpen onlyWhitelisted {
         address user = msg.sender;
@@ -268,7 +267,6 @@ contract LibraTokenSale is Whitelist {
 
     /**
     * @dev Returns the amount of wei a user has deposited
-    * @param user the address of the user whose deposit amount is to be returned
     * @return Whether deposit phase has elapsed
     */
     function getDepositAmount() public view returns (uint256) {
