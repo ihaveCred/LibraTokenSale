@@ -5,14 +5,14 @@ import "./ZeppelinWhitelist.sol";
 import "./LibraToken.sol";
 
 /**
-* @title Crowdsale
-* @dev Crowdsale is a base contract for managing a token crowdsale,
+* @title LibraTokenSale
+* @dev LibraTokenSale is a base contract for managing the Libra token sale,
 * allowing investors to purchase tokens with ether. This contract implements
 * such functionality in its most fundamental form and can be extended to provide additional
 * functionality and/or custom behavior.
 * The external interface represents the basic interface for purchasing tokens, and conform
-* the base architecture for crowdsales. They are *not* intended to be modified / overriden.
-* The internal interface conforms the extensible and modifiable surface of crowdsales. Override 
+* the base architecture for token sales. They are *not* intended to be modified / overriden.
+* The internal interface conforms the extensible and modifiable surface of token sales. Override 
 * the methods to add functionality. Consider using 'super' where appropiate to concatenate
 * behavior.
 */
@@ -98,7 +98,7 @@ contract LibraTokenSale is Whitelist {
     }
 
     // -----------------------------------------
-    // Crowdsale external interface
+    // Token sale external interface
     // -----------------------------------------
 
     /**
@@ -190,7 +190,7 @@ contract LibraTokenSale is Whitelist {
     // }
 
     /**
-    * @dev Source of tokens. Override this method to modify the way in which the crowdsale ultimately gets and sends its tokens.
+    * @dev Source of tokens. Override this method to modify the way in which the token sale ultimately gets and sends its tokens.
     * @param user Address performing the token purchase
     * @param _tokenAmount Number of tokens to be emitted
     */
