@@ -18,7 +18,7 @@ contract('WhitelistedCrowdsale', function ([_, wallet, authorized, unauthorized,
     describe('single user whitelisting', function () {
         beforeEach(async function () {
             this.token = await LibraToken.new();
-            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address);
+            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, Date.now(), 0, Date.now() + 100000, 100);
             await this.token.transfer(this.crowdsale.address, tokenSupply);
             await this.crowdsale.addToWhitelist(authorized);
         });
