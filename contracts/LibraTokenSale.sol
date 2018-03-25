@@ -98,6 +98,18 @@ contract LibraTokenSale is Whitelist {
     // -----------------------------------------
 
     /**
+    * @dev Remove from whitelist, added refund functionality
+    */
+    function removeAddressFromWhitelist(address addr) onlyOwner public returns(bool success) {
+        if (super.removeAddressFromWhitelist(addr)) {
+            uint256 refundAmount = depositAmount[addr];
+            depositAmount[addr] = 0;
+            addr.transfer(refundAmount);
+            return true;
+        }
+    }
+
+    /**
     * @dev fallback function ***DO NOT OVERRIDE***
     */
     function () external payable {
