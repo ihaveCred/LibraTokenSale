@@ -1,18 +1,20 @@
 import assertRevert from 'zeppelin-solidity/test/helpers/assertRevert.js';
 const LibraToken = artifacts.require('LibraToken');
+const BigNumber = web3.BigNumber;
+
 
 contract('LibraToken', function ([_, owner, recipient, anotherAccount]) {
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
   beforeEach(async function () {
-    this.token = await LibraToken.new();
+    this.token = await LibraToken.new({from: owner});
   });
 
   describe('total supply', function () {
     it('returns the total amount of tokens', async function () {
-      const totalSupply = await this.token.totalSupply();
-
-      assert.equal(totalSupply, (10 ** 9));
+      const INITIAL_SUPPLY = await this.token.INITIAL_SUPPLY();
+      
+      assert.equal(INITIAL_SUPPLY.toString(10), (10 ** 9) * (10 ** 18));
     });
   });
 
@@ -29,7 +31,7 @@ contract('LibraToken', function ([_, owner, recipient, anotherAccount]) {
       it('returns the total amount of tokens', async function () {
         const balance = await this.token.balanceOf(owner);
 
-        assert.equal(balance, 100);
+        assert.equal(balance.toString(10), (10 ** 9) * (10 ** 18));
       });
     });
   });
@@ -39,21 +41,22 @@ contract('LibraToken', function ([_, owner, recipient, anotherAccount]) {
       const to = recipient;
 
       describe('when the sender does not have enough balance', function () {
-        const amount = 101;
 
         it('reverts', async function () {
+          const balance = await this.token.balanceOf(owner);
+          const amount = balance.plus(1);
           await assertRevert(this.token.transfer(to, amount, { from: owner }));
         });
       });
 
       describe('when the sender has enough balance', function () {
-        const amount = 100;
+        const amount = (10 ** 9) * (10 ** 18);
 
         it('transfers the requested amount', async function () {
           await this.token.transfer(to, amount, { from: owner });
 
           const senderBalance = await this.token.balanceOf(owner);
-          assert.equal(senderBalance, 0);
+          assert.equal(senderBalance.toString(10), 0);
 
           const recipientBalance = await this.token.balanceOf(to);
           assert.equal(recipientBalance, amount);
@@ -188,17 +191,17 @@ contract('LibraToken', function ([_, owner, recipient, anotherAccount]) {
 
       describe('when the spender has enough approved balance', function () {
         beforeEach(async function () {
-          await this.token.approve(spender, 100, { from: owner });
+          await this.token.approve(spender, (10 ** 9) * (10 ** 18), { from: owner });
         });
 
         describe('when the owner has enough balance', function () {
-          const amount = 100;
+          const amount = (10 ** 9) * (10 ** 18);
 
           it('transfers the requested amount', async function () {
             await this.token.transferFrom(owner, to, amount, { from: spender });
 
             const senderBalance = await this.token.balanceOf(owner);
-            assert.equal(senderBalance, 0);
+            assert.equal(senderBalance.toString(10), 0);
 
             const recipientBalance = await this.token.balanceOf(to);
             assert.equal(recipientBalance, amount);
@@ -223,9 +226,10 @@ contract('LibraToken', function ([_, owner, recipient, anotherAccount]) {
         });
 
         describe('when the owner does not have enough balance', function () {
-          const amount = 101;
 
           it('reverts', async function () {
+            const balance = await this.token.balanceOf(owner);
+            const amount = balance.plus(1);
             await assertRevert(this.token.transferFrom(owner, to, amount, { from: spender }));
           });
         });
