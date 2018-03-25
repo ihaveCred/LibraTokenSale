@@ -70,7 +70,7 @@ contract LibraTokenSale is Whitelist {
     */
     modifier onlyWhileDepositPhaseOpen {
         require(block.timestamp >= depositPhaseStartTime && block.timestamp <= depositPhaseEndTime);
-        require(block.number >= depositPhaseStartBlock && block.number <= depositPhaseEndBlock)
+        require(block.number >= depositPhaseStartBlock && block.number <= depositPhaseEndBlock);
         _;
     }
 
