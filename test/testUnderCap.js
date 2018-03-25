@@ -12,46 +12,55 @@ require('chai')
 const LibraTokenSale = artifacts.require('LibraTokenSale');
 const LibraToken = artifacts.require('LibraToken');
 
+const promisify = (inner) =>
+    new Promise((resolve, reject) =>
+        inner((err, res) => {
+            if (err) { reject(err) }
+            resolve(res);
+        })
+    );
+
+const getBalance = (account, at) =>
+    promisify(cb => web3.eth.getBalance(account, at, cb));
+
 contract('WhitelistedCrowdsale', function ([_, wallet, authorized, unauthorized, anotherAuthorized]) {
-    const rate = new BigNumber('1e4').div(ether(1));
+    const rate = 10000
     const value = ether(42);
     const tokenSupply = new BigNumber('1e26');
 
     describe('single user whitelisting', function () {
         beforeEach(async function () {
             this.token = await LibraToken.new();
-            console.log("Token", this.token.address);
             this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address);
-            console.log("Crowdsale", this.crowdsale.address);
             await this.token.transfer(this.crowdsale.address, tokenSupply);
-            console.log("pass");
-            await this.crowdsale.addToWhitelist(authorized);
-            console.log("pass");
+            await this.crowdsale.addAddressToWhitelist(authorized);
         });
 
         describe('accepting deposits', function () {
             
             it('should reject payments to whitelisted before deposit phase starts', async function () {
-                await this.crowdsale.send(value).should.be.rejected(assertRevert);
-                await this.crowdsale.send({ value: value, from: authorized }).should.be.rejected(assertRevert);
-                await this.crowdsale.send({ value: value, from: unauthorized }).should.be.rejected(assertRevert);
+                await this.crowdsale.deposit({ value: value.toNumber() }).should.be.rejectedWith(EVMRevert);
+                await this.crowdsale.deposit({ value: value.toNumber(), from: authorized }).should.be.rejectedWith(EVMRevert);
+                await this.crowdsale.deposit({ value: value.toNumber(), from: unauthorized }).should.be.rejectedWith(EVMRevert);
             });
             
             it('should accept deposits to whitelisted after deposit phase starts', async function () {
                 await increaseTimeTo(1525176732);
-                await this.crowdsale.send({ value: value, from: authorized }).should.be.fulfilled;
+                await this.crowdsale.deposit({ value: value.toNumber(), from: authorized }).should.be.fulfilled;
             });
             
             it('should reject payments to not whitelisted after deposit phase starts', async function () {
-                await this.crowdsale.send(value).should.be.rejectedWith(EVMRevert);
-                await this.crowdsale.send({ value: value, from: unauthorized }).should.be.rejectedWith(EVMRevert);
+                await this.crowdsale.deposit({ value: value.toNumber() }).should.be.rejectedWith(EVMRevert);
+                await this.crowdsale.deposit({ value: value.toNumber(), from: unauthorized }).should.be.rejectedWith(EVMRevert);
             });
 
             it('should reject payments to addresses removed from whitelist', async function () {
-                this.crowdsale.balance.should.equal(value);
+                const pre = await getBalance(this.crowdsale.address);
+                pre.should.equal(value);
                 await this.crowdsale.removeFromWhitelist(authorized);
-                this.crowdsale.balance.should.equal(0);
-                await this.crowdsale.send({ value: value, from: authorized }).should.be.rejectedWith(EVMRevert);
+                const post = await getBalance(this.crowdsale.address);
+                post.should.equal(new BigNumber(0));
+                await this.crowdsale.deposit({ value: value, from: authorized }).should.be.rejectedWith(EVMRevert);
             });
         });
 

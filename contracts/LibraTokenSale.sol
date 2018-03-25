@@ -1,7 +1,7 @@
 pragma solidity ^0.4.19;
 
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
-import "./ZeppelinWhitelist.sol";
+import "./Whitelist.sol";
 import "./LibraToken.sol";
 
 /**
@@ -123,7 +123,7 @@ contract LibraTokenSale is Whitelist {
     /**
     * @dev Handles user deposit internally
     */
-    function deposit() public onlyWhileDepositPhaseOpen onlyWhitelisted {
+    function deposit() public payable onlyWhileDepositPhaseOpen onlyWhitelisted {
         address user = msg.sender;
         depositAmount[user] = depositAmount[user].add(msg.value);
         weiDeposited = weiDeposited.add(msg.value);
