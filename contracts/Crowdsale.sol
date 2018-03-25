@@ -116,7 +116,8 @@ contract Crowdsale is Whitelist {
     /**
     * @dev Handle user withdrawal
     */
-    function withdraw(address user) external onlyWhileDepositPhaseOpen {
+    function withdraw() external onlyWhileDepositPhaseOpen {
+        address user = msg.sender;
         uint256 withdrawAmount = depositAmount[user];
         require(withdrawAmount > 0);
         depositAmount[user] = 0;
