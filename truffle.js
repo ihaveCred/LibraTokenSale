@@ -1,4 +1,7 @@
 module.exports = {
+  mocha: {
+    useColors: true
+  },
   networks: {
     development: {
       host: "localhost",
