@@ -1,5 +1,5 @@
 import ether from 'zeppelin-solidity/test/helpers/ether';
-import {increaseTimeTo} from 'zeppelin-solidity/test/helpers/increaseTime';
+import increaseTime from 'zeppelin-solidity/test/helpers/increaseTime';
 import EVMRevert from 'zeppelin-solidity/test/helpers/EVMRevert';
 import assertRevert from 'zeppelin-solidity/test/helpers/assertRevert';
 
@@ -31,7 +31,7 @@ contract('WhitelistedCrowdsale', function ([_, wallet, authorized, unauthorized,
     describe('single user whitelisting', function () {
         beforeEach(async function () {
             this.token = await LibraToken.new();
-            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address);
+            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, Date.now(), 0, Date.now() + 100000, 100);
             await this.token.transfer(this.crowdsale.address, tokenSupply);
             await this.crowdsale.addAddressToWhitelist(authorized);
         });
@@ -45,7 +45,7 @@ contract('WhitelistedCrowdsale', function ([_, wallet, authorized, unauthorized,
             });
             
             it('should accept deposits to whitelisted after deposit phase starts', async function () {
-                await increaseTimeTo(1525176732);
+                await increaseTime(10000);
                 await this.crowdsale.deposit({ value: value.toNumber(), from: authorized }).should.be.fulfilled;
             });
             
