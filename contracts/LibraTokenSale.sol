@@ -238,7 +238,9 @@ contract LibraTokenSale is Whitelist {
     */
     function _processPurchase(address user, uint256 _tokenAmount, uint256 _refundAmount) internal {
         _deliverTokens(user, _tokenAmount);
-        _refundExcess(user, _refundAmount);
+        if (_refundAmount > 0) {
+            _refundExcess(user, _refundAmount);
+        }
     }
 
     // /**
