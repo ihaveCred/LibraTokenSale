@@ -1,5 +1,5 @@
 import ether from 'zeppelin-solidity/test/helpers/ether';
-import increaseTime from 'zeppelin-solidity/test/helpers/increaseTime';
+import { increaseTimeTo, duration } from 'zeppelin-solidity/test/helpers/increaseTime';
 import EVMRevert from 'zeppelin-solidity/test/helpers/EVMRevert';
 import assertRevert from 'zeppelin-solidity/test/helpers/assertRevert';
 
@@ -31,7 +31,7 @@ contract('WhitelistedCrowdsale', function ([_, wallet, authorized, unauthorized,
     describe('single user whitelisting', function () {
         beforeEach(async function () {
             this.token = await LibraToken.new();
-            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, Date.now(), 0, Date.now() + 100000, 100);
+            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, 1525132800, 1525132800 + duration.days(1) + duration.weeks(2));
             await this.token.transfer(this.crowdsale.address, tokenSupply);
             await this.crowdsale.addAddressToWhitelist(authorized);
         });
@@ -39,27 +39,28 @@ contract('WhitelistedCrowdsale', function ([_, wallet, authorized, unauthorized,
         describe('accepting deposits', function () {
             
             it('should reject payments to whitelisted before deposit phase starts', async function () {
-                await this.crowdsale.deposit({ value: value.toNumber() }).should.be.rejectedWith(EVMRevert);
-                await this.crowdsale.deposit({ value: value.toNumber(), from: authorized }).should.be.rejectedWith(EVMRevert);
-                await this.crowdsale.deposit({ value: value.toNumber(), from: unauthorized }).should.be.rejectedWith(EVMRevert);
+                await this.crowdsale.deposit({ value: value }).should.be.rejectedWith(EVMRevert);
+                await this.crowdsale.deposit({ value: value, from: authorized }).should.be.rejectedWith(EVMRevert);
+                await this.crowdsale.deposit({ value: value, from: unauthorized }).should.be.rejectedWith(EVMRevert);
             });
             
             it('should accept deposits to whitelisted after deposit phase starts', async function () {
-                await increaseTime(10000);
-                await this.crowdsale.deposit({ value: value.toNumber(), from: authorized }).should.be.fulfilled;
+                let result = await increaseTimeTo(1525132800 + duration.days(2));
+                await this.crowdsale.deposit({ value: value, from: authorized }).should.be.fulfilled;
             });
             
             it('should reject payments to not whitelisted after deposit phase starts', async function () {
-                await this.crowdsale.deposit({ value: value.toNumber() }).should.be.rejectedWith(EVMRevert);
-                await this.crowdsale.deposit({ value: value.toNumber(), from: unauthorized }).should.be.rejectedWith(EVMRevert);
+                await this.crowdsale.deposit({ value: value }).should.be.rejectedWith(EVMRevert);
+                await this.crowdsale.deposit({ value: value, from: unauthorized }).should.be.rejectedWith(EVMRevert);
             });
 
-            it('should reject payments to addresses removed from whitelist', async function () {
+            it('should reject payments to addresses removed from whitelist and refund', async function () {
+                await this.crowdsale.deposit({ value: value, from: authorized }).should.be.fulfilled;
                 const pre = await getBalance(this.crowdsale.address);
-                pre.should.equal(value);
-                await this.crowdsale.removeFromWhitelist(authorized);
+                pre.equals(value).should.be.true;
+                await this.crowdsale.removeAddressFromWhitelist(authorized);
                 const post = await getBalance(this.crowdsale.address);
-                post.should.equal(new BigNumber(0));
+                post.equals(new BigNumber(0)).should.be.true;
                 await this.crowdsale.deposit({ value: value, from: authorized }).should.be.rejectedWith(EVMRevert);
             });
         });

@@ -22,7 +22,8 @@
   },
   "scripts": {
     "start": "truffle compile",
-    "test": "truffle test"
+    "test": "truffle test",
+    "testCrowdsale": "truffle test ./test/testUnderCap.js"
   },
   "repository": {
     "type": "git",

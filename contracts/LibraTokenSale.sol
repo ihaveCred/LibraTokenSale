@@ -59,6 +59,13 @@ contract LibraTokenSale is Whitelist {
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
     /**
+    * Event for deposit logging
+    * @param depositor who deposited the ETH
+    * @param amount amount of ETH deposited
+    */
+    event Deposit(address indexed depositor, uint256 amount);
+
+    /**
     * Event for returning excess wei
     * @param _from who receives return
     * @param _value amount of wei returned
@@ -70,7 +77,7 @@ contract LibraTokenSale is Whitelist {
     */
     modifier onlyWhileDepositPhaseOpen {
         require(block.timestamp >= depositPhaseStartTime && block.timestamp <= depositPhaseEndTime);
-        require(block.number >= depositPhaseStartBlock && block.number <= depositPhaseEndBlock);
+        // require(block.number >= depositPhaseStartBlock && block.number <= depositPhaseEndBlock);
         _;
     }
 
@@ -86,15 +93,16 @@ contract LibraTokenSale is Whitelist {
     * @param _rate Number of token units a buyer gets per wei
     * @param _wallet Address where collected funds will be forwarded to
     * @param _token Address of the token being sold
+    * @param _depositPhaseStartTime unix timestamp of start time for deposit phase
+    * @param _depositPhaseEndTime unix timestamp of end time for deposit phase
     */
     function LibraTokenSale(
         uint256 _rate,
         address _wallet,
         ERC20 _token,
         uint256 _depositPhaseStartTime,
-        uint256 _depositPhaseStartBlock,
-        uint256 _depositPhaseEndTime,
-        uint256 _depositPhaseEndBlock) public {
+        uint256 _depositPhaseEndTime
+        ) public {
 
         require(_rate > 0);
         require(_wallet != address(0));
@@ -105,9 +113,7 @@ contract LibraTokenSale is Whitelist {
         token = LibraToken(_token);
 
         depositPhaseStartTime = _depositPhaseStartTime;
-        depositPhaseStartBlock = _depositPhaseStartBlock;
         depositPhaseEndTime = _depositPhaseEndTime;
-        depositPhaseEndBlock = _depositPhaseEndBlock;
     }
 
     // -----------------------------------------
@@ -140,6 +146,7 @@ contract LibraTokenSale is Whitelist {
         address user = msg.sender;
         depositAmount[user] = depositAmount[user].add(msg.value);
         weiDeposited = weiDeposited.add(msg.value);
+        Deposit(msg.sender, msg.value);
     }
 
     /**
