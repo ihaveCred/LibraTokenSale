@@ -22,3 +22,5 @@ To perform the tests, run:
 ```
 npm test
 ```
+
+To run the tests, please have Docker running. 
