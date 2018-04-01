@@ -23,7 +23,7 @@ const promisify = (inner) =>
 const getBalance = (account, at) =>
     promisify(cb => web3.eth.getBalance(account, at, cb));
 
-contract('WhitelistedCrowdsale', function ([_, wallet, authorized, unauthorized, auth1, auth2, auth3, auth4]) {
+contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, unauthorized, auth1, auth2, auth3, auth4]) {
     const rate = 10000
     const value = ether(3);
     const tokenSupply = new BigNumber('1e26');
