@@ -1,6 +1,8 @@
 # LibraTokenSale
 
-## Installation
+Solidity smart contracts for the Libra Credit token sale.
+
+## Setup
 
 Install NodeJS with the following versions:
 ```
