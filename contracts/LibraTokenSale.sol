@@ -22,19 +22,24 @@ contract LibraTokenSale is Whitelist {
 
     /** Phase 1 Start/End */
 
-    // Need to set these block numbers/times
+    // Need to set these block times
     uint256 depositPhaseStartTime;
-    uint256 depositPhaseStartBlock;
     uint256 depositPhaseEndTime;
-    uint256 depositPhaseEndBlock;
 
     // The token being sold
     LibraToken public token;
 
+    // How many LBA tokens being sold: 100,000,000 LBA 
+    uint256 constant public tokenSaleSupply = (10 ** 8);
+
+    // How many LBA units being sold: 100,000,000 LBA * (10 ** 18) decimals
+    uint256 constant public tokenSaleSupplyUnits = tokenSaleSupply * (10 ** 18);
+
     // Address where funds are collected
     address public wallet;
 
-    // How many token units a buyer gets per wei
+    // How many token units a buyer gets per wei or LBA tokens per ETH
+    // LBA units per wei = LBA tokesn per ETH 
     uint256 public rate;
 
     // Amount of wei raised
@@ -43,8 +48,8 @@ contract LibraTokenSale is Whitelist {
     // Amount of wei deposited
     uint256 public weiDeposited;
 
-    // Value of public sale token supply in wei
-    uint256 constant public WEI_CAP = (10 ** 18) * (10 ** 4); // 10,000 Eth Cap * 10^18 Wei/Eth
+    // Value of public sale token supply in wei: tokenSaleSupplyUnits / rate
+    uint256 public weiCap;
 
     // Amount of wei deposited by an address
     mapping(address => uint256) depositAmount;
@@ -73,11 +78,11 @@ contract LibraTokenSale is Whitelist {
     event ReturnExcessETH(address indexed _from, uint256 _value);
 
     /**
-    * @dev Reverts if not in deposit time range. 
+    * @dev Reverts if not in deposit time range or if the token sale contract does not have the appropriate token balance.
     */
     modifier onlyWhileDepositPhaseOpen {
         require(block.timestamp >= depositPhaseStartTime && block.timestamp <= depositPhaseEndTime);
-        // require(block.number >= depositPhaseStartBlock && block.number <= depositPhaseEndBlock);
+        require(token.balanceOf(this) == tokenSaleSupplyUnits);
         _;
     }
 
@@ -85,12 +90,12 @@ contract LibraTokenSale is Whitelist {
     * @dev Reverts if not in processing time range. 
     */
     modifier onlyWhileProcessingPhaseOpen {
-        require(block.timestamp > depositPhaseEndTime || block.number > depositPhaseEndBlock);
+        require(block.timestamp > depositPhaseEndTime);
         _;
     }
 
     /**
-    * @param _rate Number of token units a buyer gets per wei
+    * @param _rate Number of token units a buyer gets per ETH 
     * @param _wallet Address where collected funds will be forwarded to
     * @param _token Address of the token being sold
     * @param _depositPhaseStartTime unix timestamp of start time for deposit phase
@@ -114,6 +119,9 @@ contract LibraTokenSale is Whitelist {
 
         depositPhaseStartTime = _depositPhaseStartTime;
         depositPhaseEndTime = _depositPhaseEndTime;
+        
+
+        weiCap = (tokenSaleSupplyUnits).div(rate); //10 ** 8 total tokens / tokens per ETH * 10 ** 18 wei/ETH
     }
 
     // -----------------------------------------
@@ -123,14 +131,24 @@ contract LibraTokenSale is Whitelist {
     /**
     * @dev Remove from whitelist, added refund functionality
     */
-    function removeAddressFromWhitelist(address addr) onlyOwner public returns(bool success) {
-        if (super.removeAddressFromWhitelist(addr)) {
-            uint256 refundAmount = depositAmount[addr];
-            depositAmount[addr] = 0;
-            addr.transfer(refundAmount);
+    function removeAddressFromWhitelist(address _addr) onlyOwner public returns(bool success) {
+        if (super.removeAddressFromWhitelist(_addr)) {
+            uint256 refundAmount = depositAmount[_addr];
+            depositAmount[_addr] = 0;
+            _addr.transfer(refundAmount);
             return true;
         }
     }
+
+    /**
+    * @dev Update the rate for token purchase and consequently the weiCap
+    */
+    function updateRate(uint256 _newRate) onlyOwner onlyWhileDepositPhaseOpen public returns(bool success) {
+        rate = _newRate;
+        weiCap = (tokenSaleSupplyUnits).div(rate);
+        return true;
+    }
+
 
     /**
     * @dev fallback function ***DO NOT OVERRIDE***
@@ -146,7 +164,7 @@ contract LibraTokenSale is Whitelist {
         address user = msg.sender;
         depositAmount[user] = depositAmount[user].add(msg.value);
         weiDeposited = weiDeposited.add(msg.value);
-        Deposit(msg.sender, msg.value);
+        Deposit(user, msg.value);
     }
 
     /**
@@ -157,13 +175,26 @@ contract LibraTokenSale is Whitelist {
         uint256 withdrawAmount = depositAmount[user];
         require(withdrawAmount > 0);
         depositAmount[user] = 0;
-        msg.sender.transfer(withdrawAmount);
+        user.transfer(withdrawAmount);
+    }
+
+    /**
+    * @dev Return excess tokens
+    */
+    function returnExcessTokens(address _addr) public onlyOwner onlyWhileProcessingPhaseOpen {
+        if(weiDeposited < weiCap){
+            uint256 totalTokenUnitsPurchased = weiDeposited.mul(rate);
+            require(token.balanceOf(this) > totalTokenUnitsPurchased); //Re-entrancy protection
+            uint256 returnTokens = token.balanceOf(this).sub(totalTokenUnitsPurchased);
+            require(token.transfer(_addr, returnTokens));
+        }
     }
 
     /**
     * @dev low level process deposit ***DO NOT OVERRIDE***
+    * Note: Buyers can collect tokens after depositing, even after Libra Team has revoked the buyer from whitelist (after buyer's deposit)
     */
-    function collectTokens() public onlyWhileProcessingPhaseOpen onlyWhitelisted {
+    function collectTokens() public onlyWhileProcessingPhaseOpen {
         address user = msg.sender;
         uint256 weiAmount = depositAmount[user];
         _preValidatePurchase(user, weiAmount);
@@ -186,6 +217,7 @@ contract LibraTokenSale is Whitelist {
         // _postValidatePurchase(user, weiAmount);
     }
 
+
     // -----------------------------------------
     // Internal interface (extensible)
     // -----------------------------------------
@@ -194,10 +226,11 @@ contract LibraTokenSale is Whitelist {
     * @dev Validation of an incoming purchase. Use require statements to revert state when conditions are not met. Use super to concatenate validations.
     * @param user Address performing the token purchase
     * @param _weiAmount Value in wei involved in the purchase
+    * Note: This function also prevents people who haven't deposited from collecting tokens
     */
-    function _preValidatePurchase(address user, uint256 _weiAmount) internal {
+    function _preValidatePurchase(address user, uint256 _weiAmount) pure internal {
         require(user != address(0));
-        require(_weiAmount != 0);
+        require(_weiAmount > 0);
     }
 
     // /**
@@ -217,7 +250,7 @@ contract LibraTokenSale is Whitelist {
     function _deliverTokens(address user, uint256 _tokenAmount) internal {
         require(depositAmount[user] > 0); 
         depositAmount[user] = 0; // reentrancy protection 
-        token.transfer(user, _tokenAmount);
+        require(token.transfer(user, _tokenAmount));
     }
 
     /**
@@ -260,8 +293,8 @@ contract LibraTokenSale is Whitelist {
     function _getTokenAmount(address user) internal view returns (uint256) {
         uint256 d = depositAmount[user];
         uint256 r = 0;
-        if (weiDeposited > WEI_CAP) {
-            r = weiDeposited.sub(WEI_CAP).mul(d).div(weiDeposited);
+        if (weiDeposited > weiCap) {
+            r = weiDeposited.sub(weiCap).mul(d).div(weiDeposited);
         }
         d = d.sub(r);
         return d.mul(rate);
@@ -275,8 +308,8 @@ contract LibraTokenSale is Whitelist {
     function _getRefundAmount(address user) internal view returns (uint256) {
         uint256 d = depositAmount[user];
         uint256 r = 0;
-        if (weiDeposited > WEI_CAP) {
-            r = weiDeposited.sub(WEI_CAP).mul(d).div(weiDeposited);
+        if (weiDeposited > weiCap) {
+            r = weiDeposited.sub(weiCap).mul(d).div(weiDeposited);
         }
         return r;
     }
@@ -297,8 +330,8 @@ contract LibraTokenSale is Whitelist {
     * @dev Checks whether the phase in which the deposits are accepted has already elapsed.
     * @return Whether deposit phase has elapsed
     */
-    function hasClosed() public view returns (bool) {
-        return block.timestamp > depositPhaseEndTime || block.number > depositPhaseEndBlock;
+    function depositsClosed() public view returns (bool) {
+        return block.timestamp > depositPhaseEndTime;
     }
 
     /**
