@@ -31,7 +31,7 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
 
     describe('single user whitelisting', function () {
         beforeEach(async function () {
-            this.token = await LibraToken.new();
+            this.token = await LibraToken.new(); 
             this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, latestTime(), latestTime() + duration.weeks(2));
             await this.token.transfer(this.crowdsale.address, tokenSupply);
             await this.crowdsale.addAddressToWhitelist(authorized);
@@ -47,7 +47,7 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
                 for (let i = 0; i < users.length; i++) {
                     await this.crowdsale.deposit({ value: value, from: users[i] }).should.be.fulfilled;
                 }
-
+            
                 await increaseTimeTo(latestTime() + duration.days(20) + duration.weeks(2));
 
                 await this.crowdsale.collectTokens({ from: unauthorized }).should.be.rejectedWith(EVMRevert);
@@ -57,10 +57,12 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
                     const balance = await this.token.balanceOf(users[i]);
 
                     const weiDeposited = await this.crowdsale.weiDeposited.call();
-                    const WEI_CAP = await this.crowdsale.WEI_CAP.call()
+                    const weiCap = await this.crowdsale.weiCap.call()
 
-                    const refund = await weiDeposited.sub(WEI_CAP).times(value).div(weiDeposited);
-                    const tokens = await value.sub(refund).times(rate)
+                    const refund = await (weiDeposited.sub(weiCap)).times(value).div(weiDeposited);
+                    const tokens = await value.sub(refund).times(rate);
+
+                    
                     balance.equals(tokens).should.be.true;
                 }
 

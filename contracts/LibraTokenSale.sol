@@ -29,13 +29,16 @@ contract LibraTokenSale is Whitelist {
     // The token being sold
     LibraToken public token;
 
-    // How many tokens being sold: 100,000,000 LBA
+    // How many LBA tokens being sold: 100,000,000 LBA 
     uint256 constant public tokenSaleSupply = (10 ** 8);
+
+    // How many LBA units being sold: 100,000,000 LBA * (10 ** 18) decimals
+    uint256 constant public tokenSaleSupplyUnits = tokenSaleSupply * (10 ** 18);
 
     // Address where funds are collected
     address public wallet;
 
-    // How many token units a buyer gets per ETH
+    // How many token units a buyer gets per wei
     uint256 public rate;
 
     // Amount of wei raised
@@ -44,7 +47,7 @@ contract LibraTokenSale is Whitelist {
     // Amount of wei deposited
     uint256 public weiDeposited;
 
-    // Value of public sale token supply in wei: tokenSaleSupply / rate
+    // Value of public sale token supply in wei: tokenSaleSupplyUnits / rate
     uint256 public weiCap;
 
     // Amount of wei deposited by an address
@@ -78,7 +81,7 @@ contract LibraTokenSale is Whitelist {
     */
     modifier onlyWhileDepositPhaseOpen {
         require(block.timestamp >= depositPhaseStartTime && block.timestamp <= depositPhaseEndTime);
-        require(token.balanceOf(this) == tokenSaleSupply);
+        require(token.balanceOf(this) == tokenSaleSupplyUnits);
         _;
     }
 
@@ -117,7 +120,7 @@ contract LibraTokenSale is Whitelist {
         depositPhaseEndTime = _depositPhaseEndTime;
         
 
-        weiCap = (tokenSaleSupply).div(rate).mul(10 ** 18); //10 ** 8 total tokens / tokens per ETH * 10 ** 18 wei/ETH
+        weiCap = (tokenSaleSupplyUnits).div(rate); //10 ** 8 total tokens / tokens per ETH * 10 ** 18 wei/ETH
     }
 
     // -----------------------------------------
@@ -141,7 +144,7 @@ contract LibraTokenSale is Whitelist {
     */
     function updateRate(uint256 _newRate) onlyOwner onlyWhileDepositPhaseOpen public returns(bool success) {
         rate = _newRate;
-        weiCap = (tokenSaleSupply).div(rate).mul(10 ** 18);
+        weiCap = (tokenSaleSupplyUnits).div(rate);
         return true;
     }
 
@@ -291,7 +294,7 @@ contract LibraTokenSale is Whitelist {
             r = weiDeposited.sub(weiCap).mul(d).div(weiDeposited);
         }
         d = d.sub(r);
-        return d.mul(rate).div((10 ** 18));
+        return d.mul(rate);
     }
 
     /**
