@@ -191,8 +191,9 @@ contract LibraTokenSale is Whitelist {
 
     /**
     * @dev low level process deposit ***DO NOT OVERRIDE***
+    * Note: Buyers can collect tokens after depositing, even after Libra Team has revoked the buyer from whitelist (after buyer's deposit)
     */
-    function collectTokens() public onlyWhileProcessingPhaseOpen onlyWhitelisted {
+    function collectTokens() public onlyWhileProcessingPhaseOpen {
         address user = msg.sender;
         uint256 weiAmount = depositAmount[user];
         _preValidatePurchase(user, weiAmount);
@@ -224,10 +225,11 @@ contract LibraTokenSale is Whitelist {
     * @dev Validation of an incoming purchase. Use require statements to revert state when conditions are not met. Use super to concatenate validations.
     * @param user Address performing the token purchase
     * @param _weiAmount Value in wei involved in the purchase
+    * Note: This function also prevents people who haven't deposited from collecting tokens
     */
     function _preValidatePurchase(address user, uint256 _weiAmount) pure internal {
         require(user != address(0));
-        require(_weiAmount != 0);
+        require(_weiAmount > 0);
     }
 
     // /**
