@@ -184,7 +184,7 @@ contract LibraTokenSale is Whitelist {
         if(weiDeposited < weiCap){
             uint256 totalTokenUnitsPurchased = weiDeposited.mul(rate);
             require(token.balanceOf(this) > totalTokenUnitsPurchased);
-            uint256 returnTokens = token.balanceOf(this) - totalTokenUnitsPurchased;
+            uint256 returnTokens = token.balanceOf(this).sub(totalTokenUnitsPurchased);
             require(token.transfer(_addr, returnTokens));
         }
     }
