@@ -38,7 +38,8 @@ contract LibraTokenSale is Whitelist {
     // Address where funds are collected
     address public wallet;
 
-    // How many token units a buyer gets per wei
+    // How many token units a buyer gets per wei or LBA tokens per ETH
+    // LBA units per wei = LBA tokesn per ETH 
     uint256 public rate;
 
     // Amount of wei raised
@@ -183,7 +184,7 @@ contract LibraTokenSale is Whitelist {
     function returnExcessTokens(address _addr) public onlyOwner onlyWhileProcessingPhaseOpen {
         if(weiDeposited < weiCap){
             uint256 totalTokenUnitsPurchased = weiDeposited.mul(rate);
-            require(token.balanceOf(this) > totalTokenUnitsPurchased);
+            require(token.balanceOf(this) > totalTokenUnitsPurchased); //Re-entrancy protection
             uint256 returnTokens = token.balanceOf(this).sub(totalTokenUnitsPurchased);
             require(token.transfer(_addr, returnTokens));
         }
