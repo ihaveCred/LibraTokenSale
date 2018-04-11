@@ -29,7 +29,7 @@ contract LibraTokenSale is Whitelist {
     // The token being sold
     LibraToken public token;
 
-    // How many tokens being sold
+    // How many tokens being sold: 100,000,000 LBA
     uint256 constant public tokenSaleSupply = (10 ** 8);
 
     // Address where funds are collected
@@ -131,7 +131,7 @@ contract LibraTokenSale is Whitelist {
         if (super.removeAddressFromWhitelist(_addr)) {
             uint256 refundAmount = depositAmount[_addr];
             depositAmount[_addr] = 0;
-            require(_addr.transfer(refundAmount));
+            _addr.transfer(refundAmount);
             return true;
         }
     }
@@ -171,7 +171,7 @@ contract LibraTokenSale is Whitelist {
         uint256 withdrawAmount = depositAmount[user];
         require(withdrawAmount > 0);
         depositAmount[user] = 0;
-        require(user.transfer(withdrawAmount));
+        user.transfer(withdrawAmount);
     }
 
     /**
@@ -253,7 +253,7 @@ contract LibraTokenSale is Whitelist {
     * @param _refundAmount Amount of wei to be refunded
     */
     function _refundExcess(address user, uint256 _refundAmount) internal {
-        require(user.transfer(_refundAmount));
+        user.transfer(_refundAmount);
         ReturnExcessETH(user, _refundAmount);
     }
 
@@ -313,7 +313,7 @@ contract LibraTokenSale is Whitelist {
     * @param value amount of wei to forward
     */
     function _forwardFunds(uint256 value) internal {
-        require(wallet.transfer(value));
+        wallet.transfer(value);
     }
 
     // -----------------------------------------
