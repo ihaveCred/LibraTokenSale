@@ -51,6 +51,9 @@ contract LibraTokenSale is Whitelist {
     // Value of public sale token supply in wei: tokenSaleSupplyUnits / rate
     uint256 public weiCap;
 
+    // Wei cap for each whitelisted address
+    uint256 public ETHCapPerAddress;
+
     // Amount of wei deposited by an address
     mapping(address => uint256) depositAmount;
 
@@ -106,7 +109,8 @@ contract LibraTokenSale is Whitelist {
         address _wallet,
         ERC20 _token,
         uint256 _depositPhaseStartTime,
-        uint256 _depositPhaseEndTime
+        uint256 _depositPhaseEndTime,
+        uint256 _ETHCapPerAddress
         ) public {
 
         require(_rate > 0);
@@ -119,6 +123,8 @@ contract LibraTokenSale is Whitelist {
 
         depositPhaseStartTime = _depositPhaseStartTime;
         depositPhaseEndTime = _depositPhaseEndTime;
+
+        ETHCapPerAddress = _ETHCapPerAddress;
         
 
         weiCap = (tokenSaleSupplyUnits).div(rate); //10 ** 8 total tokens / tokens per ETH * 10 ** 18 wei/ETH
@@ -149,6 +155,14 @@ contract LibraTokenSale is Whitelist {
         return true;
     }
 
+    /**
+    * @dev Update the ETHCapPerAddress for deposits
+    */
+    function updateETHCapPerAddress(uint256 _newETHCapPerAddress) onlyOwner onlyWhileDepositPhaseOpen public returns(bool success) {
+        ETHCapPerAddress = _newETHCapPerAddress;
+        return true;
+    }
+
 
     /**
     * @dev fallback function ***DO NOT OVERRIDE***
@@ -162,6 +176,8 @@ contract LibraTokenSale is Whitelist {
     */
     function deposit() public payable onlyWhileDepositPhaseOpen onlyWhitelisted {
         address user = msg.sender;
+        uint256 weiCapPerAddress = ETHCapPerAddress.mul((10 ** 18));
+        require(depositAmount[user].add(msg.value) <= weiCapPerAddress);
         depositAmount[user] = depositAmount[user].add(msg.value);
         weiDeposited = weiDeposited.add(msg.value);
         Deposit(user, msg.value);
