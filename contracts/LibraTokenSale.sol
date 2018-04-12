@@ -29,10 +29,10 @@ contract LibraTokenSale is Whitelist {
     // The token being sold
     LibraToken public token;
 
-    // How many LBA tokens being sold: 100,000,000 LBA 
-    uint256 constant public tokenSaleSupply = (10 ** 8);
+    // How many LBA tokens being sold: 150,000,000 LBA 
+    uint256 constant public tokenSaleSupply = (15 ** 8);
 
-    // How many LBA units being sold: 100,000,000 LBA * (10 ** 18) decimals
+    // How many LBA units being sold: 150,000,000 LBA * (10 ** 18) decimals
     uint256 constant public tokenSaleSupplyUnits = tokenSaleSupply * (10 ** 18);
 
     // Address where funds are collected
