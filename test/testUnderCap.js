@@ -30,13 +30,13 @@ contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, 
     const tokenSupplyFirst = new BigNumber('1e26');
     const tokenSupplySecond = new BigNumber('5e25');
     const tokenSupply = tokenSupplyFirst.add(tokenSupplySecond);
-    const startTime = latestTime()
+
 
     describe('single user whitelisting', function () {
         beforeEach(async function () {
             this.token = await LibraToken.new();
             
-            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, startTime, startTime + duration.weeks(2));
+            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, latestTime(), latestTime() + duration.weeks(2));
             await this.token.transfer(this.crowdsale.address, tokenSupply);
             await this.crowdsale.addAddressToWhitelist(authorized);
             await this.crowdsale.addAddressToWhitelist(auth1);
@@ -51,7 +51,7 @@ contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, 
             });
             
             it('should accept deposits to whitelisted after deposit phase starts', async function () {
-                await increaseTimeTo(startTime + duration.days(2));
+                await increaseTimeTo(latestTime() + duration.days(2));
                 await this.crowdsale.deposit({ value: value, from: authorized }).should.be.fulfilled;
             });
             
@@ -100,7 +100,7 @@ contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, 
                     await this.crowdsale.deposit({ value: value, from: users[i] }).should.be.fulfilled;
                 }
                 
-                await increaseTimeTo(startTime + duration.days(2) + duration.weeks(2));
+                await increaseTimeTo(latestTime() + duration.days(2) + duration.weeks(2));
 
                 await this.crowdsale.collectTokens({ from: unauthorized }).should.be.rejectedWith(EVMRevert);
 

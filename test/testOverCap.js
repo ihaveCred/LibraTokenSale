@@ -46,9 +46,6 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
 
             it('should accept collection after end time with total deposit above cap', async function () {
 
-                const x = await this.token.balanceOf(this.crowdsale.address);
-                console.log(tokenSupply);
-                console.log(x);
                 const users = [authorized, auth1, auth2, auth3, auth4];
 
                 for (let i = 0; i < users.length; i++) {
@@ -69,8 +66,6 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
                     const refund = await (weiDeposited.sub(weiCap)).times(value).div(weiDeposited);
                     const tokens = await value.sub(refund).times(rate);
 
-                    console.log(balance);
-                    console.log(tokens);
                     balance.equals(tokens).should.be.true;
                 }
 
