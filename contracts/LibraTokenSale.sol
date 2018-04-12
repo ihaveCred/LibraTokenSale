@@ -175,6 +175,7 @@ contract LibraTokenSale is Whitelist {
         uint256 withdrawAmount = depositAmount[user];
         require(withdrawAmount > 0);
         depositAmount[user] = 0;
+        weiDeposited = weiDeposited.sub(withdrawAmount);
         user.transfer(withdrawAmount);
     }
 
@@ -184,8 +185,8 @@ contract LibraTokenSale is Whitelist {
     function returnExcessTokens(address _addr) public onlyOwner onlyWhileProcessingPhaseOpen {
         if(weiDeposited < weiCap){
             uint256 totalTokenUnitsPurchased = weiDeposited.mul(rate);
-            require(token.balanceOf(this) > totalTokenUnitsPurchased); //Re-entrancy protection
-            uint256 returnTokens = token.balanceOf(this).sub(totalTokenUnitsPurchased);
+            require(tokenSaleSupplyUnits > totalTokenUnitsPurchased); //Re-entrancy protection
+            uint256 returnTokens = (tokenSaleSupplyUnits).sub(totalTokenUnitsPurchased);
             require(token.transfer(_addr, returnTokens));
         }
     }
