@@ -27,13 +27,16 @@ const getBalance = (account, at) =>
 contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, unauthorized, auth1, auth2, auth3, auth4]) {
     const rate = 10000
     const value = ether(10000);
-    const tokenSupply = new BigNumber('1e26');
+    const tokenSupplyFirst = new BigNumber('1e26');
+    const tokenSupplySecond = new BigNumber('5e25');
+    const tokenSupply = tokenSupplyFirst.add(tokenSupplySecond);
 
     describe('single user whitelisting', function () {
         beforeEach(async function () {
             this.token = await LibraToken.new(); 
             this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, latestTime(), latestTime() + duration.weeks(2));
             await this.token.transfer(this.crowdsale.address, tokenSupply);
+            
             await this.crowdsale.addAddressToWhitelist(authorized);
             await this.crowdsale.addAddressToWhitelist(auth1);
             await this.crowdsale.addAddressesToWhitelist([auth2, auth3, auth4]);
@@ -42,6 +45,10 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
         describe('collecting tokens above cap', function () {
 
             it('should accept collection after end time with total deposit above cap', async function () {
+
+                const x = await this.token.balanceOf(this.crowdsale.address);
+                console.log(tokenSupply);
+                console.log(x);
                 const users = [authorized, auth1, auth2, auth3, auth4];
 
                 for (let i = 0; i < users.length; i++) {
@@ -62,7 +69,8 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
                     const refund = await (weiDeposited.sub(weiCap)).times(value).div(weiDeposited);
                     const tokens = await value.sub(refund).times(rate);
 
-                    
+                    console.log(balance);
+                    console.log(tokens);
                     balance.equals(tokens).should.be.true;
                 }
 

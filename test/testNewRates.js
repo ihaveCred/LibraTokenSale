@@ -27,7 +27,9 @@ const getBalance = (account, at) =>
 contract('WhitelistedCrowdsale -- New Rates', function ([_, wallet, authorized, unauthorized, auth1, auth2, auth3, auth4]) {
     const rate = 10000
     const value = ether(3);
-    const tokenSupply = new BigNumber('1e26');
+    const tokenSupplyFirst = new BigNumber('1e26');
+    const tokenSupplySecond = new BigNumber('5e25');
+    const tokenSupply = tokenSupplyFirst.add(tokenSupplySecond);
     const startTime = latestTime()
 
     
