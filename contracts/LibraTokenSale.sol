@@ -30,10 +30,10 @@ contract LibraTokenSale is Whitelist {
     // The token being sold
     LibraToken public token;
 
-    // How many LBA tokens being sold: 150,000,000 LBA 
+    // How many LBA tokens being sold: 120,000,000 LBA 
     uint256 constant public tokenSaleSupply = (10 ** 8) + (2 * (10 ** 7));
 
-    // How many LBA units being sold: 150,000,000 LBA * (10 ** 18) decimals
+    // How many LBA units being sold: 120,000,000 LBA * (10 ** 18) decimals
     uint256 constant public tokenSaleSupplyUnits = tokenSaleSupply * (10 ** 18);
 
     // Address where funds are collected
@@ -179,7 +179,7 @@ contract LibraTokenSale is Whitelist {
     }
 
     /**
-    * @dev Update the WeiCapPerAddress for deposits
+    * @dev Update the weiCapPerAddress for deposits
     */
     function setWeiCapPerAddress(uint256 _newWeiCapPerAddress) onlyOwner onlyWhileProcessingPhaseOpen public returns(bool success) {
         require(_newWeiCapPerAddress > 0);
@@ -232,7 +232,7 @@ contract LibraTokenSale is Whitelist {
     }
 
     /**
-    * @dev low level process deposit ***DO NOT OVERRIDE***
+    * @dev low level process ***DO NOT OVERRIDE***
     * Note: Buyers can collect tokens after depositing, even after Libra Team has revoked the buyer from whitelist (after buyer's deposit)
     */
     function collectTokens() public onlyWhileProcessingPhaseOpen OnlyIfIndividualWeiCapSet {
@@ -263,8 +263,8 @@ contract LibraTokenSale is Whitelist {
     }
 
     /**
-    * @dev low level process deposit ***DO NOT OVERRIDE***
-    * Note: Buyers can collect tokens after depositing, even after Libra Team has revoked the buyer from whitelist (after buyer's deposit)
+    * @dev low level process ***DO NOT OVERRIDE***
+    * Note: Owner can collect manually distribute tokens to investors, even after Libra Team has revoked the buyer from whitelist (after buyer's deposit)
     */
     function distributeTokens(address addr) public onlyOwner onlyWhileProcessingPhaseOpen OnlyIfIndividualWeiCapSet {
         require(depositAmount[addr] > 0);

@@ -63,7 +63,7 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
          
                 for (let i = 0; i < users.length; i++) {
 
-                    await this.crowdsale.collectTokens({ from: users[i] }).should.be.fulfilled;
+                    await this.crowdsale.distributeTokens(users[i]).should.be.fulfilled;
                     const balance = await this.token.balanceOf(users[i]);
 
                     const individualWeiCap = await this.crowdsale.weiCapPerAddress.call();
