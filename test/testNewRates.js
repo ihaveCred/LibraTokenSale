@@ -38,7 +38,7 @@ contract('WhitelistedCrowdsale -- New Rates', function ([_, wallet, authorized, 
         beforeEach(async function () {
             this.token = await LibraToken.new();
 
-            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, latestTime(), latestTime() + duration.weeks(2));
+            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, latestTime(), latestTime() + duration.weeks(2), latestTime() + duration.weeks(4));
             await this.token.transfer(this.crowdsale.address, tokenSupply);
             
             await this.crowdsale.addAddressToWhitelist(authorized);
@@ -106,6 +106,7 @@ contract('WhitelistedCrowdsale -- New Rates', function ([_, wallet, authorized, 
             });
 
             it('should reject collection before end time', async function () {
+                await this.crowdsale.setWeiCapPerAddress(value).should.be.rejectedWith(EVMRevert);
                 await this.crowdsale.collectTokens({ from: authorized }).should.be.rejectedWith(EVMRevert);
                 await this.crowdsale.collectTokens({ from: unauthorized }).should.be.rejectedWith(EVMRevert);
             });
@@ -125,7 +126,7 @@ contract('WhitelistedCrowdsale -- New Rates', function ([_, wallet, authorized, 
 
                 const depositOver = await this.crowdsale.depositsClosed.call();
                 depositOver.should.be.true;
-
+                await this.crowdsale.setWeiCapPerAddress(value);
                 await this.crowdsale.collectTokens({ from: unauthorized }).should.be.rejectedWith(EVMRevert);
 
                 for (let i = 0; i < users.length; i++) {
@@ -151,8 +152,10 @@ contract('WhitelistedCrowdsale -- New Rates', function ([_, wallet, authorized, 
 
                 const leftoverTokens = await this.token.balanceOf(this.crowdsale.address);            
                 leftoverTokens.equals(totalBal).should.be.true;
+                
+                await increaseTimeTo(latestTime() + duration.days(2) + duration.weeks(2));
 
-                this.crowdsale.returnExcessTokens(unauthorized);
+                this.crowdsale.returnExcess(unauthorized);
 
                 const contractBalance = await getBalance(this.crowdsale.address);
 
@@ -164,21 +167,6 @@ contract('WhitelistedCrowdsale -- New Rates', function ([_, wallet, authorized, 
                 const unauthBal = await this.token.balanceOf(unauthorized);
 
                 unauthBal.equals(totalBal).should.be.true;
-
-            });
-
-            it('should accurately cap individual ETH contribution', async function () {
-                const users = [authorized, auth1, auth2, auth3, auth4];
-
-                
-                await this.crowdsale.deposit({ value: value, from: users[0] }).should.be.fulfilled;
-                const getBal = await this.crowdsale.getDepositAmount.call({ from: users[0] });
-                getBal.equals(value).should.be.true;
-            
-                await this.crowdsale.updateETHCapPerAddress(1);
-    
-                await this.crowdsale.deposit({ value: value, from: users[1] }).should.be.rejectedWith(EVMRevert);
-                
 
             });
 

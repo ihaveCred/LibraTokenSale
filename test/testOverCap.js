@@ -34,7 +34,7 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
     describe('single user whitelisting', function () {
         beforeEach(async function () {
             this.token = await LibraToken.new(); 
-            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, latestTime(), latestTime() + duration.weeks(2));
+            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, latestTime(), latestTime() + duration.weeks(2), latestTime() + duration.weeks(4));
             await this.token.transfer(this.crowdsale.address, tokenSupply);
             
             await this.crowdsale.addAddressToWhitelist(authorized);
@@ -52,25 +52,40 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
                     await this.crowdsale.deposit({ value: value, from: users[i] }).should.be.fulfilled;
                 }
             
-                await increaseTimeTo(latestTime() + duration.days(20) + duration.weeks(2));
-
+                await increaseTimeTo(latestTime() + duration.days(2) + duration.weeks(2));
+                
+                const distribution = tokenSupply / 5;
+                
+                console.log(distribution);
+                await this.crowdsale.setWeiCapPerAddress(distribution);
+        
                 await this.crowdsale.collectTokens({ from: unauthorized }).should.be.rejectedWith(EVMRevert);
-
+         
                 for (let i = 0; i < users.length; i++) {
+
                     await this.crowdsale.collectTokens({ from: users[i] }).should.be.fulfilled;
                     const balance = await this.token.balanceOf(users[i]);
 
-                    const weiDeposited = await this.crowdsale.weiDeposited.call();
-                    const weiCap = await this.crowdsale.weiCap.call()
+                    const individualWeiCap = await this.crowdsale.weiCapPerAddress.call();
 
-                    const refund = await (weiDeposited.sub(weiCap)).times(value).div(weiDeposited);
-                    const tokens = await value.sub(refund).times(rate);
-
+                    const tokens = await individualWeiCap.times(rate);
+                    console.log("ind_weiCap", individualWeiCap)
+                    console.log("tok", tokens);
+                    console.log("bal", balance);
                     balance.equals(tokens).should.be.true;
                 }
 
                 const balance = await this.token.balanceOf(unauthorized);
                 balance.equals(new BigNumber(0)).should.be.true;
+
+                const contractBalance = await getBalance(this.crowdsale.address);
+
+                contractBalance.equals(new BigNumber(0)).should.be.true;
+
+                const newLeftoverTokens = await this.token.balanceOf(this.crowdsale.address);
+                newLeftoverTokens.equals(new BigNumber(0)).should.be.true;
+
+
             });
         });
 

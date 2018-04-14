@@ -182,6 +182,7 @@ contract LibraTokenSale is Whitelist {
     * @dev Update the WeiCapPerAddress for deposits
     */
     function setWeiCapPerAddress(uint256 _newWeiCapPerAddress) onlyOwner onlyWhileProcessingPhaseOpen public returns(bool success) {
+        require(_newWeiCapPerAddress > 0);
         weiCapPerAddress = _newWeiCapPerAddress;
         individualWeiCapSet = true;
         return true;
@@ -243,7 +244,7 @@ contract LibraTokenSale is Whitelist {
 
         uint256 refund = 0;
 
-        if(depositAmount[user] > weiCapPerAddress){
+        if(weiAmount > weiCapPerAddress){
             refund = weiAmount.sub(weiCapPerAddress);
         }
 
