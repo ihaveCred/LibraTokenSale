@@ -108,7 +108,6 @@ contract LibraTokenSale is Whitelist {
     * @dev Reverts if there are unprocessed tokens
     */
     modifier onlyWhileExcessPhaseOpen {
-
         require(block.timestamp > excessPhaseStartTime);
         _;
     }
@@ -120,7 +119,6 @@ contract LibraTokenSale is Whitelist {
         require(individualWeiCapSet == true);
         _;
     }
-
 
     /**
     * @param _rate Number of token units a buyer gets per ETH 
@@ -150,7 +148,7 @@ contract LibraTokenSale is Whitelist {
         depositPhaseEndTime = _depositPhaseEndTime;
         excessPhaseStartTime = _excessPhaseStartTime;
 
-        weiCap = (tokenSaleSupplyUnits).div(rate); //10 ** 8 total tokens / tokens per ETH * 10 ** 18 wei/ETH
+        weiCap = (tokenSaleSupplyUnits).div(rate); //total tokens / token units per wei
     }
 
     // -----------------------------------------
@@ -224,11 +222,9 @@ contract LibraTokenSale is Whitelist {
     * @dev Return excess tokens and ETH
     */
     function returnExcess(address _addr) public onlyOwner onlyWhileExcessPhaseOpen OnlyIfIndividualWeiCapSet {
-        
         uint256 totalExcessTokens = token.balanceOf(this);
         require(token.transfer(_addr, totalExcessTokens));
         wallet.transfer(address(this).balance);
-        
     }
 
     /**
@@ -254,7 +250,6 @@ contract LibraTokenSale is Whitelist {
 
         // update state
         totalWeiRaised = totalWeiRaised.add(weiAmount);
-        
 
         _processPurchase(user, tokens, refund);
         TokenPurchase(user, user, weiAmount, tokens);
@@ -287,14 +282,12 @@ contract LibraTokenSale is Whitelist {
 
         // update state
         totalWeiRaised = totalWeiRaised.add(weiAmount);
-        
 
         _processPurchase(user, tokens, refund);
         TokenPurchase(user, user, weiAmount, tokens);
 
         _forwardFunds(weiAmount);
     }
-
 
     // -----------------------------------------
     // Internal interface (extensible)
