@@ -54,9 +54,9 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
             
                 await increaseTimeTo(latestTime() + duration.days(2) + duration.weeks(2));
                 
-                const distribution = tokenSupply / 5;
+                const distribution = (tokenSupply / 5) / rate ;
                 
-                console.log(distribution);
+
                 await this.crowdsale.setWeiCapPerAddress(distribution);
         
                 await this.crowdsale.collectTokens({ from: unauthorized }).should.be.rejectedWith(EVMRevert);
@@ -69,9 +69,7 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
                     const individualWeiCap = await this.crowdsale.weiCapPerAddress.call();
 
                     const tokens = await individualWeiCap.times(rate);
-                    console.log("ind_weiCap", individualWeiCap)
-                    console.log("tok", tokens);
-                    console.log("bal", balance);
+
                     balance.equals(tokens).should.be.true;
                 }
 

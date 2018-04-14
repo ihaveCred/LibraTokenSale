@@ -246,9 +246,8 @@ contract LibraTokenSale is Whitelist {
 
         if(weiAmount > weiCapPerAddress){
             refund = weiAmount.sub(weiCapPerAddress);
+            weiAmount = weiCapPerAddress;
         }
-
-        weiAmount = weiAmount.sub(refund);
 
         // calculate tokens purchased 
         uint256 tokens = weiAmount.mul(rate);
