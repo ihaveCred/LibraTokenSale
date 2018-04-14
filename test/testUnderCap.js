@@ -28,7 +28,7 @@ contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, 
     const rate = 10000
     const value = ether(3);
     const tokenSupplyFirst = new BigNumber('1e26');
-    const tokenSupplySecond = new BigNumber('5e25');
+    const tokenSupplySecond = new BigNumber('2e25');
     const tokenSupply = tokenSupplyFirst.add(tokenSupplySecond);
 
 
@@ -36,7 +36,7 @@ contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, 
         beforeEach(async function () {
             this.token = await LibraToken.new();
             
-            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, latestTime(), latestTime() + duration.weeks(2), value);
+            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, latestTime(), latestTime() + duration.weeks(2));
             await this.token.transfer(this.crowdsale.address, tokenSupply);
             await this.crowdsale.addAddressToWhitelist(authorized);
             await this.crowdsale.addAddressToWhitelist(auth1);
