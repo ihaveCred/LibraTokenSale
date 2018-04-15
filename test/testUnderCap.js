@@ -28,7 +28,7 @@ contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, 
     const rate = 10000
     const value = ether(3);
     const tokenSupplyFirst = new BigNumber('1e26');
-    const tokenSupplySecond = new BigNumber('5e25');
+    const tokenSupplySecond = new BigNumber('2e25');
     const tokenSupply = tokenSupplyFirst.add(tokenSupplySecond);
 
 
@@ -36,7 +36,7 @@ contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, 
         beforeEach(async function () {
             this.token = await LibraToken.new();
             
-            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, latestTime(), latestTime() + duration.weeks(2));
+            this.crowdsale = await LibraTokenSale.new(rate, wallet, this.token.address, latestTime(), latestTime() + duration.weeks(2), latestTime() + duration.weeks(4));
             await this.token.transfer(this.crowdsale.address, tokenSupply);
             await this.crowdsale.addAddressToWhitelist(authorized);
             await this.crowdsale.addAddressToWhitelist(auth1);
@@ -89,11 +89,12 @@ contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, 
             });
 
             it('should reject collection before end time', async function () {
+                await increaseTimeTo(latestTime() + duration.days(2) + duration.weeks(2));
                 await this.crowdsale.collectTokens({ from: authorized }).should.be.rejectedWith(EVMRevert);
                 await this.crowdsale.collectTokens({ from: unauthorized }).should.be.rejectedWith(EVMRevert);
             });
 
-            it('should accept collection after end time', async function () {
+            it('should accept collection during process phase', async function () {
                 const users = [authorized, auth1, auth2, auth3, auth4];
                 
                 for (let i = 0; i < users.length; i++) {
@@ -102,17 +103,42 @@ contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, 
                 
                 await increaseTimeTo(latestTime() + duration.days(2) + duration.weeks(2));
 
+                const distribution = ether(4)
+                await this.crowdsale.setWeiCapPerAddress(distribution);
+
                 await this.crowdsale.collectTokens({ from: unauthorized }).should.be.rejectedWith(EVMRevert);
 
                 for (let i = 0; i < users.length; i++) {
                     await this.crowdsale.collectTokens({ from: users[i] }).should.be.fulfilled;
                     const balance = await this.token.balanceOf(users[i]);
+
                     balance.equals(value.times(rate)).should.be.true;
                 }
-                
+
                 const balance = await this.token.balanceOf(unauthorized);
                 balance.equals(new BigNumber(0)).should.be.true;
+
+                await increaseTimeTo(latestTime() + duration.days(2) + duration.weeks(2));
+  
+
+                const testing = await this.crowdsale.individualWeiCapSet.call()
+                const preCrowsaleBalance = await this.token.balanceOf(this.crowdsale.address);
+                await this.crowdsale.returnExcess(unauthorized);
+
+                const contractBalance = await getBalance(this.crowdsale.address);
+
+                contractBalance.equals(new BigNumber(0)).should.be.true;
+
+                const newLeftoverTokens = await this.token.balanceOf(this.crowdsale.address);
+                const unauthBal = await this.token.balanceOf(unauthorized);
+
+                newLeftoverTokens.equals(new BigNumber(0)).should.be.true;
+
+                unauthBal.equals(preCrowsaleBalance).should.be.true;
+
+
             });
+
         });
 
         describe('reporting whitelisted', function () {
