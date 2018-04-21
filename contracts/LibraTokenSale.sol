@@ -81,6 +81,13 @@ contract LibraTokenSale is Whitelist {
     event Deposit(address indexed depositor, uint256 amount);
 
     /**
+    * Event for withdraw logging
+    * @param depositor who is withdrew the ETH
+    * @param amount amount of ETH withdrawn
+    */
+    event Withdraw(address indexed depositor, uint256 amount);
+
+    /**
     * Event for returning excess wei
     * @param _from who receives return
     * @param _value amount of wei returned
@@ -215,6 +222,7 @@ contract LibraTokenSale is Whitelist {
         depositAmount[user] = 0;
         totalWeiDeposited = totalWeiDeposited.sub(withdrawAmount);
         numInvestors = numInvestors.sub(1);
+        Deposit(user, withdrawAmount);
         user.transfer(withdrawAmount);
     }
 
