@@ -75,17 +75,17 @@ contract LibraTokenSale is Whitelist {
 
     /**
     * Event for deposit logging
-    * @param depositor who deposited the ETH
-    * @param amount amount of ETH deposited
+    * @param _depositor who deposited the ETH
+    * @param _amount amount of ETH deposited
     */
-    event Deposit(address indexed depositor, uint256 amount);
+    event Deposit(address indexed _depositor, uint256 _amount);
 
     /**
     * Event for withdraw logging
-    * @param depositor who is withdrew the ETH
-    * @param amount amount of ETH withdrawn
+    * @param _depositor who withdrew the ETH
+    * @param _amount amount of ETH withdrawn
     */
-    event Withdraw(address indexed depositor, uint256 amount);
+    event Withdraw(address indexed _depositor, uint256 _amount);
 
     /**
     * Event for returning excess wei
@@ -94,7 +94,7 @@ contract LibraTokenSale is Whitelist {
     */
     event ReturnExcessETH(address indexed _from, uint256 _value);
 
-    /**
+    /*
     * @dev Reverts if not in deposit time range or if the token sale contract does not have the appropriate token balance.
     */
     modifier onlyWhileDepositPhaseOpen {
