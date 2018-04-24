@@ -84,7 +84,6 @@ contract LibraTokenSale is Whitelist {
     * @param _depositor who withdrew the ETH
     * @param _amount amount of ETH withdrawn
     */
-
     event Withdraw(address indexed _depositor, uint256 _amount);
 
     /**
