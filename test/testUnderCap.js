@@ -27,9 +27,7 @@ const getBalance = (account, at) =>
 contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, unauthorized, auth1, auth2, auth3, auth4]) {
     const rate = 10000
     const value = ether(3);
-    const tokenSupplyFirst = new BigNumber('1e26');
-    const tokenSupplySecond = new BigNumber('2e25');
-    const tokenSupply = tokenSupplyFirst.add(tokenSupplySecond);
+    const tokenSupply = new BigNumber('8e25');
 
 
     describe('single user whitelisting', function () {
@@ -104,7 +102,7 @@ contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, 
                 await increaseTimeTo(latestTime() + duration.days(2) + duration.weeks(2));
 
                 const distribution = ether(4)
-                await this.crowdsale.setWeiCapPerAddress(distribution);
+                await this.crowdsale.setWeiCapPerAddress(distribution).should.be.fulfilled;
 
                 await this.crowdsale.collectTokens({ from: unauthorized }).should.be.rejectedWith(EVMRevert);
 
