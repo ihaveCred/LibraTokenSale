@@ -75,6 +75,7 @@ contract LibraTokenSale is Whitelist {
     * Event for deposit logging
     * @param _depositor who deposited the ETH
     * @param _amount amount of ETH deposited
+
     */
     event Deposit(address indexed _depositor, uint256 _amount);
 
@@ -83,6 +84,7 @@ contract LibraTokenSale is Whitelist {
     * @param _depositor who withdrew the ETH
     * @param _amount amount of ETH withdrawn
     */
+
     event Withdraw(address indexed _depositor, uint256 _amount);
 
     /**
