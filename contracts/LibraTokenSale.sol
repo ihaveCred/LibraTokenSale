@@ -20,9 +20,7 @@ import "./LibraToken.sol";
 contract LibraTokenSale is Whitelist {
     using SafeMath for uint256;
 
-    /** Phase 1 Start/End */
-
-    // Need to set these block times
+    // Phase blocktimes
     uint256 depositPhaseStartTime;
     uint256 depositPhaseEndTime;
     uint256 excessPhaseStartTime;
@@ -30,10 +28,10 @@ contract LibraTokenSale is Whitelist {
     // The token being sold
     LibraToken public token;
 
-    // How many LBA tokens being sold: 120,000,000 LBA 
-    uint256 constant public tokenSaleSupply = (10 ** 8) + (2 * (10 ** 7));
+    // How many LBA tokens being sold: 80,000,000 LBA 
+    uint256 constant public tokenSaleSupply = (8 * (10 ** 7));
 
-    // How many LBA units being sold: 120,000,000 LBA * (10 ** 18) decimals
+    // How many LBA units being sold: 80,000,000 LBA * (10 ** 18) decimals
     uint256 constant public tokenSaleSupplyUnits = tokenSaleSupply * (10 ** 18);
 
     // Address where funds are collected
@@ -75,10 +73,17 @@ contract LibraTokenSale is Whitelist {
 
     /**
     * Event for deposit logging
-    * @param depositor who deposited the ETH
-    * @param amount amount of ETH deposited
+    * @param _depositor who deposited the ETH
+    * @param _amount amount of ETH deposited
     */
-    event Deposit(address indexed depositor, uint256 amount);
+    event Deposit(address indexed _depositor, uint256 _amount);
+
+    /**
+    * Event for withdraw logging
+    * @param _depositor who withdrew the ETH
+    * @param _amount amount of ETH withdrawn
+    */
+    event Withdraw(address indexed _depositor, uint256 _amount);
 
     /**
     * Event for returning excess wei
@@ -87,12 +92,12 @@ contract LibraTokenSale is Whitelist {
     */
     event ReturnExcessETH(address indexed _from, uint256 _value);
 
-    /**
+    /*
     * @dev Reverts if not in deposit time range or if the token sale contract does not have the appropriate token balance.
     */
     modifier onlyWhileDepositPhaseOpen {
         require(block.timestamp >= depositPhaseStartTime && block.timestamp <= depositPhaseEndTime);
-        require(token.balanceOf(this) == tokenSaleSupplyUnits);
+        require(token.balanceOf(this) >= tokenSaleSupplyUnits);
         _;
     }
 
@@ -215,6 +220,7 @@ contract LibraTokenSale is Whitelist {
         depositAmount[user] = 0;
         totalWeiDeposited = totalWeiDeposited.sub(withdrawAmount);
         numInvestors = numInvestors.sub(1);
+        Deposit(user, withdrawAmount);
         user.transfer(withdrawAmount);
     }
 
@@ -273,9 +279,8 @@ contract LibraTokenSale is Whitelist {
 
         if(depositAmount[user] > weiCapPerAddress){
             refund = weiAmount.sub(weiCapPerAddress);
+            weiAmount = weiCapPerAddress;
         }
-
-        weiAmount = weiAmount.sub(refund);
 
         // calculate tokens purchased 
         uint256 tokens = weiAmount.mul(rate);

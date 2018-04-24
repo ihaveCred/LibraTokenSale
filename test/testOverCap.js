@@ -25,11 +25,9 @@ const getBalance = (account, at) =>
     promisify(cb => web3.eth.getBalance(account, at, cb));
 
 contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, unauthorized, auth1, auth2, auth3, auth4]) {
-    const rate = 10000
-    const value = ether(10000);
-    const tokenSupplyFirst = new BigNumber('1e26');
-    const tokenSupplySecond = new BigNumber('2e25');
-    const tokenSupply = tokenSupplyFirst.add(tokenSupplySecond);
+    const rate = new BigNumber("10000");
+    const value = ether(1000);
+    const tokenSupply = new BigNumber('8e25');
 
     describe('single user whitelisting', function () {
         beforeEach(async function () {
@@ -54,13 +52,13 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
             
                 await increaseTimeTo(latestTime() + duration.days(2) + duration.weeks(2));
                 
-                const distribution = (tokenSupply / 5) / rate ;
+                const numUsers = new BigNumber("5");
+                const distribution = (tokenSupply.dividedBy(numUsers)).dividedBy(rate) ;
                 
-
-                await this.crowdsale.setWeiCapPerAddress(distribution);
+                await this.crowdsale.setWeiCapPerAddress(distribution).should.be.fulfilled;
         
                 await this.crowdsale.collectTokens({ from: unauthorized }).should.be.rejectedWith(EVMRevert);
-         
+  
                 for (let i = 0; i < users.length; i++) {
 
                     await this.crowdsale.distributeTokens(users[i]).should.be.fulfilled;
@@ -68,21 +66,32 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
 
                     const individualWeiCap = await this.crowdsale.weiCapPerAddress.call();
 
-                    const tokens = await individualWeiCap.times(rate);
+                    const tokens = await value.times(rate);
 
                     balance.equals(tokens).should.be.true;
+         
                 }
 
                 const balance = await this.token.balanceOf(unauthorized);
                 balance.equals(new BigNumber(0)).should.be.true;
+
+                
+                await increaseTimeTo(latestTime() + duration.days(2) + duration.weeks(2));
+
+                const testing = await this.crowdsale.individualWeiCapSet.call()
+                const preCrowsaleBalance = await this.token.balanceOf(this.crowdsale.address);
+                await this.crowdsale.returnExcess(unauthorized);
 
                 const contractBalance = await getBalance(this.crowdsale.address);
 
                 contractBalance.equals(new BigNumber(0)).should.be.true;
 
                 const newLeftoverTokens = await this.token.balanceOf(this.crowdsale.address);
+                const unauthBal = await this.token.balanceOf(unauthorized);
+
                 newLeftoverTokens.equals(new BigNumber(0)).should.be.true;
 
+                unauthBal.equals(preCrowsaleBalance).should.be.true;
 
             });
         });

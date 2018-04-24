@@ -27,12 +27,8 @@ const getBalance = (account, at) =>
 contract('WhitelistedCrowdsale -- New Rates', function ([_, wallet, authorized, unauthorized, auth1, auth2, auth3, auth4]) {
     const rate = 10000
     const value = ether(3);
-    const tokenSupplyFirst = new BigNumber('1e26');
-    const tokenSupplySecond = new BigNumber('2e25');
-    const tokenSupply = tokenSupplyFirst.add(tokenSupplySecond);
 
-
-    
+    const tokenSupply = new BigNumber('8e25');
 
     describe('single user whitelisting', function () {
         beforeEach(async function () {
@@ -126,16 +122,13 @@ contract('WhitelistedCrowdsale -- New Rates', function ([_, wallet, authorized, 
 
                 const depositOver = await this.crowdsale.depositsClosed.call();
                 depositOver.should.be.true;
-                await this.crowdsale.setWeiCapPerAddress(value);
+                await this.crowdsale.setWeiCapPerAddress(value).should.be.fulfilled;
                 await this.crowdsale.collectTokens({ from: unauthorized }).should.be.rejectedWith(EVMRevert);
-
+      
                 for (let i = 0; i < users.length; i++) {
-
-                    
 
                     await this.crowdsale.collectTokens({ from: users[i] }).should.be.fulfilled;
                     const balance = await this.token.balanceOf(users[i]);
-                    
                     
                     balance.equals(value.times(rate)).should.be.true;
                 }
@@ -144,13 +137,13 @@ contract('WhitelistedCrowdsale -- New Rates', function ([_, wallet, authorized, 
 
                 const numUsers = await users.length
 
-                const totalBal = balBefore - ((single.times(numUsers)))
+                const totalBal = balBefore.minus((single.times(numUsers)))
 
                 const balance = await this.token.balanceOf(unauthorized);
                 balance.equals(new BigNumber(0)).should.be.true;
+       
+                const leftoverTokens = await this.token.balanceOf(this.crowdsale.address); 
 
-
-                const leftoverTokens = await this.token.balanceOf(this.crowdsale.address);            
                 leftoverTokens.equals(totalBal).should.be.true;
                 
                 await increaseTimeTo(latestTime() + duration.days(2) + duration.weeks(2));
@@ -158,7 +151,7 @@ contract('WhitelistedCrowdsale -- New Rates', function ([_, wallet, authorized, 
                 this.crowdsale.returnExcess(unauthorized);
 
                 const contractBalance = await getBalance(this.crowdsale.address);
-
+     
                 contractBalance.equals(new BigNumber(0)).should.be.true;
 
                 const newLeftoverTokens = await this.token.balanceOf(this.crowdsale.address);    
@@ -167,7 +160,7 @@ contract('WhitelistedCrowdsale -- New Rates', function ([_, wallet, authorized, 
                 const unauthBal = await this.token.balanceOf(unauthorized);
 
                 unauthBal.equals(totalBal).should.be.true;
-
+       
             });
 
         });
