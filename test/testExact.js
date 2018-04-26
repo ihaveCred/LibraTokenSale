@@ -24,9 +24,9 @@ const promisify = (inner) =>
 const getBalance = (account, at) =>
     promisify(cb => web3.eth.getBalance(account, at, cb));
 
-contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, unauthorized, auth1, auth2, auth3, auth4]) {
+contract('WhitelistedCrowdsale -- Test Exact', function ([_, wallet, authorized, unauthorized, auth1, auth2, auth3, auth4]) {
     const rate = new BigNumber("10000");
-    const value = ether(10000);
+    const value = ether(1);
     const tokenSupply = new BigNumber('8e25');
 
     describe('single user whitelisting', function () {
@@ -54,12 +54,13 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
                 
                 const weiCap = await this.crowdsale.weiCap.call();
                 const numUsers = new BigNumber("5");
-                const distribution = weiCap.dividedBy(numUsers);
-
+                const distribution = weiCap.dividedBy(numUsers) ;
+                const balBefore = await this.token.balanceOf(this.crowdsale.address);
+                
                 await this.crowdsale.setWeiCapPerAddress(distribution).should.be.fulfilled;
-
+        
                 await this.crowdsale.collectTokens({ from: unauthorized }).should.be.rejectedWith(EVMRevert);
-
+  
                 for (let i = 0; i < users.length; i++) {
 
                     await this.crowdsale.distributeTokens(users[i]).should.be.fulfilled;
@@ -67,25 +68,34 @@ contract('WhitelistedCrowdsale -- Over Cap', function ([_, wallet, authorized, u
 
                     const individualWeiCap = await this.crowdsale.weiCapPerAddress.call();
 
-                    const tokens = await individualWeiCap.times(rate);
+                    const tokens = new BigNumber("1e22");
 
                     balance.equals(tokens).should.be.true;
-
+         
                 }
+
+                const single = await this.token.balanceOf(users[0]);
+
+                const totalBal = balBefore.minus((single.times(numUsers)))
 
                 const balance = await this.token.balanceOf(unauthorized);
                 balance.equals(new BigNumber(0)).should.be.true;
 
+                await increaseTimeTo(latestTime() + duration.days(2) + duration.weeks(2));
 
-
-                const CrowsaleBalance = await this.token.balanceOf(this.crowdsale.address);
+                this.crowdsale.returnExcess(unauthorized);
 
                 const contractBalance = await getBalance(this.crowdsale.address);
 
-
-                CrowsaleBalance.equals(new BigNumber(0)).should.be.true;
-
                 contractBalance.equals(new BigNumber(0)).should.be.true;
+
+                const newLeftoverTokens = await this.token.balanceOf(this.crowdsale.address);
+                newLeftoverTokens.equals(new BigNumber(0)).should.be.true;
+
+                const unauthBal = await this.token.balanceOf(unauthorized);
+
+                unauthBal.equals(totalBal).should.be.true;
+
 
             });
         });
