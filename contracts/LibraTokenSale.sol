@@ -28,10 +28,10 @@ contract LibraTokenSale is Whitelist {
     // The token being sold
     LibraToken public token;
 
-    // How many LBA tokens being sold: 80,000,000 LBA 
-    uint256 constant public tokenSaleSupply = (8 * (10 ** 7));
+    // How many LBA tokens being sold: 40,000,000 LBA 
+    uint256 constant public tokenSaleSupply = (4 * (10 ** 7));
 
-    // How many LBA units being sold: 80,000,000 LBA * (10 ** 18) decimals
+    // How many LBA units being sold: 40,000,000 LBA * (10 ** 18) decimals
     uint256 constant public tokenSaleSupplyUnits = tokenSaleSupply * (10 ** 18);
 
     // Address where funds are collected
@@ -75,7 +75,6 @@ contract LibraTokenSale is Whitelist {
     * Event for deposit logging
     * @param _depositor who deposited the ETH
     * @param _amount amount of ETH deposited
-
     */
     event Deposit(address indexed _depositor, uint256 _amount);
 
@@ -154,7 +153,7 @@ contract LibraTokenSale is Whitelist {
         depositPhaseEndTime = _depositPhaseEndTime;
         excessPhaseStartTime = _excessPhaseStartTime;
 
-        weiCap = (tokenSaleSupplyUnits).div(rate); //total tokens / token units per wei
+        weiCap = tokenSaleSupplyUnits.div(rate); // total tokens / token units per wei
     }
 
     // -----------------------------------------
@@ -164,12 +163,17 @@ contract LibraTokenSale is Whitelist {
     /**
     * @dev Remove from whitelist, added refund functionality
     */
-    function removeAddressFromWhitelist(address _addr) onlyOwner public returns(bool success) {
+    function removeAddressFromWhitelist(address _addr) onlyOwner onlyWhileDepositPhaseOpen public returns(bool success) {
         if (super.removeAddressFromWhitelist(_addr)) {
             uint256 refundAmount = depositAmount[_addr];
             depositAmount[_addr] = 0;
-            _addr.transfer(refundAmount);
+            if (refundAmount > 0) {
+                numInvestors = numInvestors.sub(1);
+                _addr.transfer(refundAmount);
+            }
             return true;
+        } else {
+            return false;
         }
     }
 
@@ -178,7 +182,7 @@ contract LibraTokenSale is Whitelist {
     */
     function updateRate(uint256 _newRate) onlyOwner onlyWhileDepositPhaseOpen public returns(bool success) {
         rate = _newRate;
-        weiCap = (tokenSaleSupplyUnits).div(rate);
+        weiCap = tokenSaleSupplyUnits.div(rate);
         return true;
     }
 
@@ -192,7 +196,6 @@ contract LibraTokenSale is Whitelist {
         return true;
     }
 
-
     /**
     * @dev fallback function ***DO NOT OVERRIDE***
     */
@@ -205,9 +208,11 @@ contract LibraTokenSale is Whitelist {
     */
     function deposit() public payable onlyWhileDepositPhaseOpen onlyWhitelisted {
         address user = msg.sender;
+        if (depositAmount[user] == 0) {
+            numInvestors = numInvestors.add(1);
+        }
         depositAmount[user] = depositAmount[user].add(msg.value);
         totalWeiDeposited = totalWeiDeposited.add(msg.value);
-        numInvestors = numInvestors.add(1);
         Deposit(user, msg.value);
     }
 
@@ -221,7 +226,7 @@ contract LibraTokenSale is Whitelist {
         depositAmount[user] = 0;
         totalWeiDeposited = totalWeiDeposited.sub(withdrawAmount);
         numInvestors = numInvestors.sub(1);
-        Deposit(user, withdrawAmount);
+        Withdraw(user, withdrawAmount);
         user.transfer(withdrawAmount);
     }
 
@@ -246,16 +251,15 @@ contract LibraTokenSale is Whitelist {
         totalWeiDeposited = totalWeiDeposited.sub(weiAmount);
 
         uint256 refund = 0;
-
         if(weiAmount > weiCapPerAddress){
             refund = weiAmount.sub(weiCapPerAddress);
             weiAmount = weiCapPerAddress;
         }
 
-        // calculate tokens purchased 
+        // Calculate tokens purchased 
         uint256 tokens = weiAmount.mul(rate);
 
-        // update state
+        // Update state
         totalWeiRaised = totalWeiRaised.add(weiAmount);
 
         _processPurchase(user, tokens, refund);
@@ -269,7 +273,6 @@ contract LibraTokenSale is Whitelist {
     * Note: Owner can collect manually distribute tokens to investors, even after Libra Team has revoked the buyer from whitelist (after buyer's deposit)
     */
     function distributeTokens(address addr) public onlyOwner onlyWhileProcessingPhaseOpen OnlyIfIndividualWeiCapSet {
-        require(depositAmount[addr] > 0);
         address user = addr;
         uint256 weiAmount = depositAmount[user];
         _preValidatePurchase(user, weiAmount);
@@ -277,16 +280,15 @@ contract LibraTokenSale is Whitelist {
         totalWeiDeposited = totalWeiDeposited.sub(weiAmount);
 
         uint256 refund = 0;
-
-        if(depositAmount[user] > weiCapPerAddress){
+        if(weiAmount > weiCapPerAddress){
             refund = weiAmount.sub(weiCapPerAddress);
             weiAmount = weiCapPerAddress;
         }
 
-        // calculate tokens purchased 
+        // Calculate tokens purchased 
         uint256 tokens = weiAmount.mul(rate);
 
-        // update state
+        // Update state
         totalWeiRaised = totalWeiRaised.add(weiAmount);
 
         _processPurchase(user, tokens, refund);
@@ -317,7 +319,7 @@ contract LibraTokenSale is Whitelist {
     */
     function _deliverTokens(address user, uint256 _tokenAmount) internal {
         require(depositAmount[user] > 0); 
-        depositAmount[user] = 0; // reentrancy protection 
+        depositAmount[user] = 0; // Reentrancy protection 
         require(token.transfer(user, _tokenAmount));
     }
 

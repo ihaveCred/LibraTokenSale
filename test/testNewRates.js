@@ -28,7 +28,7 @@ contract('WhitelistedCrowdsale -- New Rates', function ([_, wallet, authorized, 
     const rate = 10000
     const value = ether(3);
 
-    const tokenSupply = new BigNumber('8e25');
+    const tokenSupply = new BigNumber('4e25');
 
     describe('single user whitelisting', function () {
         beforeEach(async function () {

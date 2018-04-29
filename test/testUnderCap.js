@@ -27,7 +27,7 @@ const getBalance = (account, at) =>
 contract('WhitelistedCrowdsale -- Under Cap', function ([_, wallet, authorized, unauthorized, auth1, auth2, auth3, auth4]) {
     const rate = 10000
     const value = ether(3);
-    const tokenSupply = new BigNumber('8e25');
+    const tokenSupply = new BigNumber('4e25');
 
 
     describe('single user whitelisting', function () {
